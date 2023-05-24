@@ -79,7 +79,7 @@ class Task(torch.nn.Module, metaclass=ABCMeta):
             the device to move the models on, by default torch.device('cuda')
         """
         for modality, model in self.task_models.items():
-            self.task_models[modality] = torch.nn.DataParallel(model).to(device)
+            self.task_models[modality] = torch.nn.DataParallel(model, device_ids=device.index).to(device)
 
     def __restore_checkpoint(self, m: str, path: str):
         """Restore a checkpoint from path.

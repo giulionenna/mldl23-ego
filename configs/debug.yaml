@@ -1,14 +1,14 @@
-action: train # train or test
-name: prova_debug_ta3n
-split: train
-resume_from:  #./checkpoints/I3D_SourceOnlyD1
+#action: train # train or test
+#name: prova_debug_ta3n
+# split: train
+# resume_from:  #./checkpoints/I3D_SourceOnlyD1
 
-save:
-  num_clips: 5
-  dense_sampling:
-    RGB: True
-  num_frames_per_clip:
-    RGB: 16
+# save:
+#   num_clips: 5
+#   dense_sampling:
+#     RGB: True
+#   num_frames_per_clip:
+#     RGB: 16
 
 dataset:
   annotations_path: train_val
@@ -22,13 +22,13 @@ dataset:
   Event:
     rgb4e: 6
 
-#these are the action recognition models for each modality
-models:
-  RGB:
-    model: Classifier
-    num_class: 8
-    n_features: [5, 1024]
-    temporal_type: 'mean'
+# #these are the action recognition models for each modality
+# models:
+#   RGB:
+#     model: Classifier
+#     num_class: 8
+#     n_features: [5, 1024]
+#     temporal_type: 'mean'
 
 # models:
 #   RGB:

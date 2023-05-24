@@ -47,8 +47,14 @@ def main():
     # this will output the domain conversion (D1 -> 8, et cetera) and the label list
     num_classes, valid_labels, source_domain, target_domain = utils.utils.get_domains_and_labels(args)
     # device where everything is run
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+    #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if(args.gpus == "mps:0"):
+        device = torch.device("mps:0" if torch.backends.mps.is_available() else "cpu")
+    elif(args.gpus == "cuda"):
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    else: 
+        device = torch.device("cpu")
+    logger.info('Using device '+str(device))
     # these dictionaries are for more multi-modal training/testing, each key is a modality used
     models = {}
     logger.info("Instantiating models per modality")
@@ -56,7 +62,7 @@ def main():
         logger.info('{} Net\tModality: {}'.format(args.models[m].model, m))
         # notice that here, the first parameter passed is the input dimension
         # In our case it represents the feature dimensionality which is equivalent to 1024 for I3D
-        models[m] = getattr(model_list, args.models[m].model)(num_classes,[5,1024],"Ciao")
+        models[m] = getattr(model_list, args.models[m].model)(num_classes,[5,1024],args.models['RGB']["temporal-type"],args.models['RGB']["ablation"],device)
 
     # the models are wrapped into the ActionRecognition task which manages all the training steps
     action_classifier = tasks.TA3N_task("action-classifier", models, args.batch_size,
@@ -80,12 +86,18 @@ def main():
                                                    num_workers=args.dataset.workers, pin_memory=True, drop_last=True)
 
         val_loader = torch.utils.data.DataLoader(EpicKitchensDataset(args.dataset.shift.split("-")[-1], modalities,
-                                                                     'val', args.dataset, None, None, None,
+                                                                     'domainAdapt', args.dataset, None, None, None,
                                                                      None, load_feat=True),
                                                  batch_size=args.batch_size, shuffle=False,
                                                  num_workers=args.dataset.workers, pin_memory=True, drop_last=False)
-        train(action_classifier, train_loader, val_loader, device, num_classes)
-
+        loss_train = train(action_classifier, train_loader, val_loader, device, num_classes)
+        #                 loss_train_D1_to_D2_TRN/base_gsd1/0_gtd0/1_grd0/1_lr_sgdMomval_weightDecay
+        loss_file_name = "train_images/loss_train_"+args.dataset.shift.split("-")[0]+"_to_"+args.dataset.shift.split("-")[-1]+"_" \
+                            +args.models.RGB["temporal-type"]+"_gsd_"+str(args.models.RGB.ablation["gsd"])+"_gtd_"+str(args.models.RGB.ablation["gtd"]) \
+                            +"_grd_"+str(args.models.RGB.ablation["grd"])+"_lr_"+str(args.models.RGB.lr)+"_sgdMom_"+str(args.models.RGB.sgd_momentum)+ \
+                                "_weightDecay_"+str(args.models.RGB.weight_decay) +".pt"
+        torch.save(loss_train, loss_file_name)
+        
     elif args.action == "validate":
         if args.resume_from is not None:
             action_classifier.load_last_model(args.resume_from)
@@ -115,6 +127,8 @@ def train(action_classifier, train_loader, val_loader, device, num_classes):
     action_classifier.zero_grad()
     iteration = action_classifier.current_iter * (args.total_batch // args.batch_size)
     min_dataset_size = min(len(data_loader_target._dataset), len(data_loader_source._dataset))
+
+    loss_train = torch.zeros([int(training_iterations / (args.total_batch // args.batch_size)),4]) #
     # the batch size should be total_batch but batch accumulation is done with batch size = batch_size.
     # real_iter is the number of iterations if the batch size was really total_batch
     for i in range(int(iteration), training_iterations):
@@ -180,7 +194,7 @@ def train(action_classifier, train_loader, val_loader, device, num_classes):
         #compute loss on target
         action_classifier.compute_loss(logits_t, target_label, target_label_domain, loss_weight=1, domain="target")
         #backward based on updated losses
-        action_classifier.backward(retain_graph=False)
+        action_classifier.backward()
         #accuracy update
         action_classifier.compute_accuracy(logits_s, source_label)
 
@@ -189,6 +203,8 @@ def train(action_classifier, train_loader, val_loader, device, num_classes):
             logger.info("[%d/%d]\tlast Verb loss: %.4f\tMean verb loss: %.4f\tAcc@1: %.2f%%\tAccMean@1: %.2f%%" %
                         (real_iter, args.train.num_iter, action_classifier.loss.val, action_classifier.loss.avg,
                          action_classifier.accuracy.val[1], action_classifier.accuracy.avg[1]))
+            #save loss
+            loss_train[i//4] = action_classifier.get_losses()
 
             action_classifier.check_grad()
             action_classifier.step()
@@ -198,7 +214,7 @@ def train(action_classifier, train_loader, val_loader, device, num_classes):
         # save the last 9 models
         if gradient_accumulation_step and real_iter % args.train.eval_freq == 0:
             val_metrics = validate(action_classifier, val_loader, device, int(real_iter), num_classes)
-
+            
             if val_metrics['top1'] <= action_classifier.best_iter_score:
                 logger.info("New best accuracy {:.2f}%"
                             .format(action_classifier.best_iter_score))
@@ -210,6 +226,7 @@ def train(action_classifier, train_loader, val_loader, device, num_classes):
             action_classifier.save_model(real_iter, val_metrics['top1'], prefix=None)
             action_classifier.train(True)
 
+    return loss_train
 
 def validate(model, val_loader, device, it, num_classes):
     """
@@ -230,7 +247,6 @@ def validate(model, val_loader, device, it, num_classes):
     with torch.no_grad():
         for i_val, (data, label) in enumerate(val_loader):
             label = label.to(device)
-
             logits = model(data)
             model.compute_accuracy(logits, label)
 
