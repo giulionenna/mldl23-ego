@@ -46,7 +46,7 @@ class Classifier(nn.Module):
             self.gsd.add_module('gsd_bn2', nn.BatchNorm1d(256))
             self.gsd.add_module('gsd_relu2', nn.ReLU(True))      
             self.gsd.add_module('gsd_fc3', nn.Linear(256, 2))
-            self.gsd.add_module('gsd_softmax', nn.LogSoftmax(dim=1))
+            self.gsd.add_module('gsd_softmax', nn.Softmax(dim=1))
         
         #Temporal Pooling
         if(temporal_type == "TRN"):
@@ -65,7 +65,7 @@ class Classifier(nn.Module):
                         nn.BatchNorm1d(n_grd_out//2),
                         nn.ReLU(True) ,
                         nn.Linear(n_grd_out//2, 2),
-                        nn.LogSoftmax(dim=1))
+                        nn.Softmax(dim=1))
                     self.grd_all += [grd]
         
         #Temporal Domain discriminator
@@ -79,12 +79,12 @@ class Classifier(nn.Module):
             self.gtd.add_module('gtd_bn2',     nn.BatchNorm1d(256))
             self.gtd.add_module('gtd_relu2',   nn.ReLU(True))      
             self.gtd.add_module('gtd_fc3',     nn.Linear(256, 2))
-            self.gtd.add_module('gtd_softmax', nn.LogSoftmax(dim=1))
+            self.gtd.add_module('gtd_softmax', nn.Softmax(dim=1))
         
         #Gy
         self.gy = nn.Sequential()
         self.gy.add_module('c_fc1', nn.Linear(n_gsf_out, num_class))
-        self.gy.add_module('c_softmax', nn.LogSoftmax(dim=1))
+        self.gy.add_module('c_softmax', nn.Softmax(dim=1))
 
 
     def forward(self, x,alpha = 1):

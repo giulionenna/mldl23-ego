@@ -65,7 +65,7 @@ def main():
     # the models are wrapped into the ActionRecognition task which manages all the training steps
     action_classifier = tasks.TA3N_task("action-classifier", models, args.batch_size,
                                                 args.total_batch, args.models_dir, num_classes,
-                                                args.train.num_clips, args.models, args=args)
+                                                args.train.num_clips, args.models, device, args=args)
     action_classifier.load_on_gpu(device)
 
     if args.action == "train":
@@ -81,13 +81,13 @@ def main():
                                                                        'train', args.dataset, None, None, None,
                                                                        None, load_feat=True),
                                                    batch_size=args.batch_size, shuffle=True,
-                                                   num_workers=args.dataset.workers, pin_memory=True, drop_last=True)
+                                                   num_workers=args.dataset.workers, pin_memory=True, drop_last=True, persistent_workers = True)
 
         val_loader = torch.utils.data.DataLoader(EpicKitchensDataset(args.dataset.shift.split("-")[-1], modalities,
                                                                      'domainAdapt', args.dataset, None, None, None,
                                                                      None, load_feat=True),
                                                  batch_size=args.batch_size, shuffle=False,
-                                                 num_workers=args.dataset.workers, pin_memory=True, drop_last=False)
+                                                 num_workers=args.dataset.workers, pin_memory=True, drop_last=False, persistent_workers = True)
         loss_train = train(action_classifier, train_loader, val_loader, device, num_classes)
         #                 loss_train_D1_to_D2_TRN/base_gsd1/0_gtd0/1_grd0/1_lr_sgdMomval_weightDecay
         loss_file_name = "train_images/loss_train_"+args.dataset.shift.split("-")[0]+"_to_"+args.dataset.shift.split("-")[-1]+"_" \
@@ -166,8 +166,8 @@ def train(action_classifier, train_loader, val_loader, device, num_classes):
             target_label_domain = 1*torch.ones([args.batch_size], dtype = int)
         end_t = datetime.now()
 
-        logger.info(f"Iteration {i}/{training_iterations} batch retrieved! Elapsed time = "
-                    f"{(end_t - start_t).total_seconds() // 60} m {(end_t - start_t).total_seconds() % 60} s")
+        #logger.info(f"Iteration {i}/{training_iterations} batch retrieved! Elapsed time = "
+        #            f"{(end_t - start_t).total_seconds() // 60} m {(end_t - start_t).total_seconds() % 60} s")
 
         ''' Action recognition'''
         "******** We start by using the source ****************"
