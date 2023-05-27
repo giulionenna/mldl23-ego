@@ -13,7 +13,8 @@
 dataset:
   annotations_path: train_val
   shift: D1-D1
-  workers: 16
+  workers: 4
+  persistent_workers : False
   stride: 2
   resolution: 224
   RGB:

@@ -50,6 +50,7 @@ class TA3N_task(tasks.Task, ABC):
         self.loss_td = utils.AverageMeter()
         self.loss_sd = utils.AverageMeter()
         self.loss_rd = utils.AverageMeter()
+        self.loss_ae = utils.AverageMeter()
         
         self.num_clips = num_clips
 
@@ -133,10 +134,10 @@ class TA3N_task(tasks.Task, ABC):
                 self.loss_td.update(self.criterion_td(fused_logits_td, label_d))
                 loss +=  self.loss_td.val
 
-                domain_entropy = torch.sum(-softmax(fused_logits_td) * logsoftmax(fused_logits_td), 1)
-                class_entropy = torch.sum(-softmax(fused_logits_class) * logsoftmax(fused_logits_class), 1) 
-                loss_ae = (1+domain_entropy)*class_entropy
-                loss+= loss_ae; 
+                domain_entropy = torch.sum(-(fused_logits_td) * torch.log(fused_logits_td), 1).nan_to_num()
+                class_entropy = torch.sum(-(fused_logits_class) * torch.log(fused_logits_class), 1).nan_to_num() 
+                self.loss_ae.update( (1+class_entropy)*domain_entropy)
+ #               loss+= 0.1*self.loss_ae.val; 
                 
         
             if(self.model_args['RGB']["temporal-type"]=="TRN" and self.model_args['RGB']["ablation"]["grd"]):
@@ -164,10 +165,10 @@ class TA3N_task(tasks.Task, ABC):
             if(self.model_args['RGB']["ablation"]["gtd"]):
                 self.loss_td.add(self.criterion_td(fused_logits_td, label_d))
                 loss += self.loss_td.val
-                domain_entropy = torch.sum(-softmax(fused_logits_td) * logsoftmax(fused_logits_td), 1)
-                class_entropy = torch.sum(-softmax(fused_logits_class) * logsoftmax(fused_logits_class), 1)   
-                loss_ae = (1+domain_entropy)*class_entropy
-                loss+= loss_ae; 
+                domain_entropy = torch.sum(-(fused_logits_td) * torch.log(fused_logits_td), 1).nan_to_num()
+                class_entropy = torch.sum(-(fused_logits_class) * torch.log(fused_logits_class), 1).nan_to_num()
+                self.loss_ae.update( (1+class_entropy)*domain_entropy)
+#                loss+= 0.1*self.loss_ae.val; 
             
             if(self.model_args['RGB']["temporal-type"]=="TRN" and self.model_args['RGB']["ablation"]["grd"]):
                 fused_logits_rd = reduce(lambda x, y: x + y, logits["rd"].values())
