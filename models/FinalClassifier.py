@@ -24,7 +24,7 @@ class Classifier(nn.Module):
         self.batch_size = 32 #TODO *************
         self.device = device
         #GSF
-        n_gsf_out = 512
+        n_gsf_out = 1024
         self.n_gsf_out = n_gsf_out
         self.gsf = nn.Sequential()
         self.gsf.add_module('gsf_fc1', nn.Linear(self.n_feat[1], n_gsf_out))
@@ -66,7 +66,7 @@ class Classifier(nn.Module):
                         nn.BatchNorm1d(n_grd_out//2),
                         nn.ReLU(True) ,
                         nn.Linear(n_grd_out//2, 2),
-                        nn.Softmax(dim=1))
+                        nn.LogSoftmax(dim=1))
                     self.grd_all += [grd]
         
         self.AvgPool = nn.AdaptiveAvgPool2d((1,n_gsf_out))
@@ -86,8 +86,15 @@ class Classifier(nn.Module):
         
         #Gy
         self.gy = nn.Sequential()
-        self.gy.add_module('c_fc1', nn.Linear(n_gsf_out, num_class))
-        self.gy.add_module('c_softmax', nn.Softmax(dim=1))
+        self.gy.add_module('c_fc1', nn.Linear(n_gsf_out, 100))
+        self.gy.add_module('c_bn', nn.BatchNorm1d(100))
+        self.gy.add_module('c_relu1',   nn.ReLU(True))
+        self.gy.add_module('c_drop1', nn.Dropout2d())
+        self.gy.add_module('c_fc2', nn.Linear(100, 100))
+        self.gy.add_module('c_bn2', nn.BatchNorm1d(100))
+        self.gy.add_module('c_relu2',   nn.ReLU(True))
+        self.gy.add_module('c_fc3', nn.Linear(100, num_class))
+        self.gy.add_module('c_softmax', nn.LogSoftmax(dim=1))
 
 
     def forward(self, x,alpha = 1):

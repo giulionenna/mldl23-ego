@@ -30,7 +30,9 @@ ek_data/
 configs/debug.yaml
 annotations/
 checkpoints/
-#saved_features/
+train_images/
+saved_models/
+Experiment_logs/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

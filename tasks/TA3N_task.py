@@ -41,16 +41,16 @@ class TA3N_task(tasks.Task, ABC):
 
         # self.accuracy and self.loss track the evolution of the accuracy and the training loss
         self.accuracy = utils.Accuracy(topk=(1, 5), classes=num_classes)
-        self.accuracy_class = utils.Accuracy(topk=(1, 5), classes=num_classes)
-        self.accuracy_td = utils.Accuracy(classes=2)
-        self.accuracy_sd = utils.Accuracy(classes=2)
+    #    self.accuracy_class = utils.Accuracy(topk=(1, 5), classes=num_classes)
+    #    self.accuracy_td = utils.Accuracy(classes=2)
+    #    self.accuracy_sd = utils.Accuracy(classes=2)
         
         self.loss = utils.AverageMeter()
     
-        self.loss_class = utils.AverageMeter() ########## controlla ##########
-        self.loss_td = utils.AverageMeter()
-        self.loss_sd = utils.AverageMeter()
-        self.loss_rd = utils.AverageMeter()
+    #  self.loss_class = utils.AverageMeter() ########## controlla ##########
+     #   self.loss_td = utils.AverageMeter()
+     #   self.loss_sd = utils.AverageMeter()
+     #   self.loss_rd = utils.AverageMeter()
 
 
         
@@ -200,22 +200,54 @@ class TA3N_task(tasks.Task, ABC):
         # Source 
         #   class
         fused_logits_class_source = reduce(lambda x, y: x + y, logits_source["class"].values())
+        fused_logits_class_target = reduce(lambda x, y: x + y, logits_target["class"].values())
         loss_class_source = self.criterion_class(fused_logits_class_source, label_class_source)
-        self.loss_class.update(loss_class_source)
-
+        #   spatial domain
         loss_sd = 0
         if(self.model_args['RGB']["ablation"]["gsd"]):
             fused_logits_sd_source = reduce(lambda x, y: x + y, logits_source["sd"].values())
             fused_logits_sd_target = reduce(lambda x, y: x + y, logits_target["sd"].values())
             loss_sd += self.criterion_sd(fused_logits_sd_source, label_d_source) 
             loss_sd += self.criterion_sd(fused_logits_sd_target, label_d_target) 
-            self.loss_sd.update(loss_sd)
+    #       self.loss_sd.update(loss_sd)
+        
+        loss_td = 0
+        if(self.model_args['RGB']['ablation']['gtd']):
+            fused_logits_td_source = reduce(lambda x, y: x + y, logits_source["td"].values())
+            fused_logits_td_target = reduce(lambda x, y: x + y, logits_target["td"].values())
+            loss_td += self.criterion_sd(fused_logits_td_source, label_d_source) 
+            loss_td += self.criterion_sd(fused_logits_td_target, label_d_target) 
+
+        #   rd
+        loss_rd = 0 
+        if(self.model_args['RGB']["temporal-type"]=="TRN" and self.model_args['RGB']["ablation"]["grd"]):
+            fused_logits_rd_source = reduce(lambda x, y: x + y, logits_source["rd"].values())
+            fused_logits_rd_target = reduce(lambda x, y: x + y, logits_target["rd"].values())
+            for i in range(0,self.num_clips-1):
+                loss_rd += self.criterion_rd(fused_logits_rd_source[:,i,:], label_d_source)
+                loss_rd += self.criterion_rd(fused_logits_rd_target[:,i,:], label_d_target)
+
+        #   ae
+        loss_ae = 0
+        eps = 1e-4
+        softmax = nn.Softmax(dim=1)
+        logsoftmax = nn.LogSoftmax(dim=1)
+        if(self.model_args['RGB']['ablation']['domainA']):
+            domain_entropy = torch.sum(-softmax(fused_logits_td_source) * logsoftmax(fused_logits_td_source+eps), 1)
+            class_entropy = torch.sum(-softmax(fused_logits_class_source) * logsoftmax(fused_logits_class_source+eps), 1) 
+            loss_ae += (1+domain_entropy)*class_entropy
+
+            domain_entropy = torch.sum(-softmax(fused_logits_td_target) * logsoftmax(fused_logits_td_source+eps), 1)
+            class_entropy = torch.sum(-softmax(fused_logits_class_target) * logsoftmax(fused_logits_class_target+eps), 1) 
+            loss_ae += (1+domain_entropy)*class_entropy
+
+
 
         
         
 
         #combine target and source
-        loss = self.loss_class.val + self.loss_sd.val + self.loss_td.val+self.loss_rd.val
+        loss = 10*loss_class_source - loss_sd - loss_td -1e-3*loss_rd + loss_ae
         self.loss.update(torch.mean(loss_weight * loss) / (self.total_batch / self.batch_size), self.batch_size)
         return
     def compute_accuracy(self, logits_source: Dict[str, torch.Tensor], label: torch.Tensor):
@@ -259,10 +291,10 @@ class TA3N_task(tasks.Task, ABC):
 
         This method must be called after each optimization step.
         """
-        self.loss_class.reset()
-        self.loss_sd.reset()
-        self.loss_td.reset()
-        self.loss_rd.reset()
+ #       self.loss_class.reset()
+   #     self.loss_sd.reset()
+    #    self.loss_td.reset()
+     #   self.loss_rd.reset()
 
         self.loss.reset()
 
@@ -294,12 +326,12 @@ class TA3N_task(tasks.Task, ABC):
         self.loss.val.backward(retain_graph=retain_graph)
 
     def get_losses(self):
-        losses = torch.zeros([4])
-        losses[0] = torch.mean(self.loss_class.avg)
-        if(self.model_args['RGB']['ablation']['gsd']):
-            losses[1] = torch.mean(self.loss_sd.avg)
-        if(self.model_args['RGB']['ablation']['gtd']):    
-            losses[2] = torch.mean(self.loss_td.avg)
-        if(self.model_args['RGB']['ablation']['grd']):    
-            losses[3] = torch.mean(self.loss_rd.avg)
-        return losses
+
+ #       losses[0] = torch.mean(self.loss_class.avg)
+#       if(self.model_args['RGB']['ablation']['gsd']):
+#           losses[1] = torch.mean(self.loss_sd.avg)
+#       if(self.model_args['RGB']['ablation']['gtd']):    
+#           losses[2] = torch.mean(self.loss_td.avg)
+#       if(self.model_args['RGB']['ablation']['grd']):    
+#           losses[3] = torch.mean(self.loss_rd.avg)
+        return torch.mean(self.loss.avg)
