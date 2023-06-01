@@ -30,6 +30,9 @@ ek_data/
 configs/debug.yaml
 annotations/
 checkpoints/
+saved_models/
+experiment_logs/
+train_images/
 #saved_features/
 
 # PyInstaller
