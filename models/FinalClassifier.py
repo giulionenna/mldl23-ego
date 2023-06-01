@@ -24,7 +24,7 @@ class Classifier(nn.Module):
         self.batch_size = 32 #TODO *************
         self.device = device
         #GSF
-        n_gsf_out = 1024
+        n_gsf_out = 512
         self.n_gsf_out = n_gsf_out
         self.gsf = nn.Sequential()
         self.gsf.add_module('gsf_fc1', nn.Linear(self.n_feat[1], n_gsf_out))
@@ -47,7 +47,7 @@ class Classifier(nn.Module):
             self.gsd.add_module('gsd_bn2', nn.BatchNorm1d( n_gsd//2))
             self.gsd.add_module('gsd_relu2', nn.LeakyReLU(0.1))      
             self.gsd.add_module('gsd_fc3', nn.Linear( n_gsd//2, 2))
-            self.gsd.add_module('gsd_softmax', nn.Softmax(dim=1))
+            
         
         #Temporal Pooling
         if(temporal_type == "TRN"):
@@ -66,7 +66,8 @@ class Classifier(nn.Module):
                         nn.BatchNorm1d(n_grd_out//2),
                         nn.ReLU(True) ,
                         nn.Linear(n_grd_out//2, 2),
-                        nn.LogSoftmax(dim=1))
+                        
+                        )
                     self.grd_all += [grd]
         
         self.AvgPool = nn.AdaptiveAvgPool2d((1,n_gsf_out))
@@ -82,19 +83,17 @@ class Classifier(nn.Module):
             self.gtd.add_module('gtd_bn2',     nn.BatchNorm1d(n_gtd//2))
             self.gtd.add_module('gtd_relu2',   nn.LeakyReLU(0.1))      
             self.gtd.add_module('gtd_fc3',     nn.Linear(n_gtd//2, 2))
-            self.gtd.add_module('gtd_softmax', nn.Softmax(dim=1))
+            
         
         #Gy
+        #1
         self.gy = nn.Sequential()
-        self.gy.add_module('c_fc1', nn.Linear(n_gsf_out, 100))
-        self.gy.add_module('c_bn', nn.BatchNorm1d(100))
-        self.gy.add_module('c_relu1',   nn.ReLU(True))
-        self.gy.add_module('c_drop1', nn.Dropout2d())
-        self.gy.add_module('c_fc2', nn.Linear(100, 100))
-        self.gy.add_module('c_bn2', nn.BatchNorm1d(100))
-        self.gy.add_module('c_relu2',   nn.ReLU(True))
-        self.gy.add_module('c_fc3', nn.Linear(100, num_class))
-        self.gy.add_module('c_softmax', nn.LogSoftmax(dim=1))
+        #self.gy.add_module('c_fc1', nn.Linear(n_gsf_out,n_gsf_out//2))
+        #self.gy.add_module('gy_bn1', nn.BatchNorm1d(n_gsf_out//2))
+        #self.gy.add_module('gy_relu1', nn.LeakyReLU(0.1))
+        #self.gy.add_module('gy_fc2', nn.Linear(n_gsf_out//2, num_class))
+       #2
+        self.gy.add_module('gy_fc1', nn.Linear(n_gsf_out, num_class))
 
 
     def forward(self, x,alpha = 1):
