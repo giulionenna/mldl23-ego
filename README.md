@@ -35,3 +35,5 @@ Indicazioni Progetto: https://docs.google.com/document/d/1DvOqTtqZ94FobxMGCXh4-E
 Drive: https://drive.google.com/drive/folders/1kxqESSFr2gyYSd25tJ5lu-RInLhTQslH?usp=share_link
 
 Slides: https://docs.google.com/presentation/d/1hL85bNgypdS3q2m5qybGNGqhMQ25H8coroGWZTbLAh8/edit#slide=id.gc6fa3c898_0_0
+
+Risultati Ta3N: https://docs.google.com/spreadsheets/d/1wXTxS_a3G5C9I1UajHncSuCTlpxfCkVHSTf3reD4cds/edit?usp=sharing
