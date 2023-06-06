@@ -35,8 +35,8 @@ def init_operations():
 
     # wanbd logging configuration
     if args.wandb_name is not None:
-        wandb.init(group=args.wandb_name, dir=args.wandb_dir)
-        wandb.run.name = args.name + "_" + args.shift.split("-")[0] + "_" + args.shift.split("-")[-1]
+        wandb.init(group=args.wandb_name) #dir=args.wandb_dir
+        wandb.run.name = args.name + "_" + args.dataset.shift.split("-")[0] + "_" + args.dataset.shift.split("-")[-1]
 
 
 def main():
@@ -97,6 +97,7 @@ def main():
                                                  num_workers=args.dataset.workers, pin_memory=True, drop_last=False,persistent_workers=args.dataset.persistentWorkers)
         loss_train = train(action_classifier, train_loader,target_loader, val_loader, device, num_classes)
         #                 loss_train_D1_to_D2_TRN/base_gsd1/0_gtd0/1_grd0/1_lr_sgdMomval_weightDecay
+        
         loss_file_name = "train_images/loss_train_"+args.dataset.shift.split("-")[0]+"_to_"+args.dataset.shift.split("-")[-1]+"_" \
                             +args.models.RGB["temporal-type"]+"_gsd_"+str(args.models.RGB.ablation["gsd"])+"_gtd_"+str(args.models.RGB.ablation["gtd"]) \
                             +"_grd_"+str(args.models.RGB.ablation["grd"])+"_lr_"+str(args.models.RGB.lr)+"_sgdMom_"+str(args.models.RGB.sgd_momentum)+ \
@@ -203,7 +204,7 @@ def train(action_classifier, train_loader, target_loader,val_loader, device, num
         #forward on target
         logits_t = action_classifier.forward(data_t)
         #compute loss on source
-        action_classifier.compute_loss2(logits_s,logits_t, source_label, source_label_domain,target_label_domain, loss_weight=1)
+        action_classifier.compute_loss3(logits_s,logits_t, source_label, source_label_domain,target_label_domain, loss_weight=1)
         #backward based on updated losses
         action_classifier.backward()
         #accuracy update
