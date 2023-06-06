@@ -35,8 +35,8 @@ def init_operations():
 
     # wanbd logging configuration
     if args.wandb_name is not None:
-        wandb.init(group=args.wandb_name) #dir=args.wandb_dir
-        wandb.run.name = args.name + "_" + args.dataset.shift.split("-")[0] + "_" + args.dataset.shift.split("-")[-1]
+        wandb.init(group=args.wandb_name)
+        #wandb.run.name = args.name + "_" + args.shift.split("-")[0] + "_" + args.shift.split("-")[-1]
 
 
 def main():
@@ -91,13 +91,12 @@ def main():
                                                    num_workers=args.dataset.workers, pin_memory=True, drop_last=True,persistent_workers=args.dataset.persistentWorkers)
 
         val_loader = torch.utils.data.DataLoader(EpicKitchensDataset(args.dataset.shift.split("-")[-1], modalities,
-                                                                     'domainAdapt', args.dataset, None, None, None,
+                                                                     'val', args.dataset, None, None, None,
                                                                      None, load_feat=True),
                                                  batch_size=args.batch_size, shuffle=False,
                                                  num_workers=args.dataset.workers, pin_memory=True, drop_last=False,persistent_workers=args.dataset.persistentWorkers)
         loss_train = train(action_classifier, train_loader,target_loader, val_loader, device, num_classes)
         #                 loss_train_D1_to_D2_TRN/base_gsd1/0_gtd0/1_grd0/1_lr_sgdMomval_weightDecay
-        
         loss_file_name = "train_images/loss_train_"+args.dataset.shift.split("-")[0]+"_to_"+args.dataset.shift.split("-")[-1]+"_" \
                             +args.models.RGB["temporal-type"]+"_gsd_"+str(args.models.RGB.ablation["gsd"])+"_gtd_"+str(args.models.RGB.ablation["gtd"]) \
                             +"_grd_"+str(args.models.RGB.ablation["grd"])+"_lr_"+str(args.models.RGB.lr)+"_sgdMom_"+str(args.models.RGB.sgd_momentum)+ \
@@ -216,6 +215,14 @@ def train(action_classifier, train_loader, target_loader,val_loader, device, num
                          action_classifier.accuracy.val[1], action_classifier.accuracy.avg[1]))
             #save loss
             loss_train[i//4] = action_classifier.get_losses()
+            #wandb
+            wandb.log({"loss":  action_classifier.loss.val, 
+                       "loss_sd": torch.mean(torch.tensor(action_classifier.loss_sd.val,dtype=float)),
+                       "loss_td": torch.mean(torch.tensor(action_classifier.loss_td.val,dtype=float)),
+                       "loss_rd": torch.mean(torch.tensor(action_classifier.loss_rd.val,dtype=float)),
+                       "loss_ae": torch.mean(torch.tensor(action_classifier.loss_ae.val,dtype=float))
+                       })
+
             action_classifier.check_grad()
             action_classifier.step()
             action_classifier.zero_grad()
@@ -233,6 +240,7 @@ def train(action_classifier, train_loader, target_loader,val_loader, device, num
                 action_classifier.best_iter = real_iter
                 action_classifier.best_iter_score = val_metrics['top1']
 
+            wandb.log({"acc":  action_classifier.best_iter_score})
             action_classifier.save_model(real_iter, val_metrics['top1'], prefix=None)
             action_classifier.train(True)
 
@@ -278,6 +286,7 @@ def validate(model, val_loader, device, it, num_classes):
     test_results = {'top1': model.accuracy.avg[1], 'top5': model.accuracy.avg[5],
                     'class_accuracies': np.array(class_accuracies)}
 
+   
     with open(os.path.join(args.log_dir, f'val_precision_{args.dataset.shift.split("-")[0]}-'
                                          f'{args.dataset.shift.split("-")[-1]}.txt'), 'a+') as f:
         f.write("[%d/%d]\tAcc@top1: %.2f%%\n" % (it, args.train.num_iter, test_results['top1']))
