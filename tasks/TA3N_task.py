@@ -298,7 +298,7 @@ class TA3N_task(tasks.Task, ABC):
             loss+=0.5*self.l_r*loss_rd
         #  <----–-------–-------–-------–-------–-------–-------–-------
 
-        self.loss.add(torch.mean(loss_weight * loss) / (self.total_batch / self.batch_size), self.batch_size)
+        self.loss.update(torch.mean(loss_weight * loss) / (self.total_batch / self.batch_size), self.batch_size)
         return
     def compute_loss_td(self,logits_source,logits_target,label_d_source,label_d_target):
         fused_logits_td_source = reduce(lambda x, y: x + y, logits_source["td"].values())

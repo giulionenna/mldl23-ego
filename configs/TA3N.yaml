@@ -48,16 +48,16 @@ models:
     normalize: False
     kwargs: {}
     lr_steps: 1500
-    lr: 1e-2
-    gamma: 0.1
-    l_s: 1
-    l_r: 1
-    l_t: 1
+    lr: 0.03
+    gamma: 0.3
+    l_s: 0.75
+    l_r: 0.5
+    l_t: 0.75
     sgd_momentum: 0.9
-    weight_decay: 1e-7
+    weight_decay: 1e-4
     temporal-type: TRN
     ablation: 
       gsd: True
       gtd: True
       grd: True
-      domainA: True
+      domainA: False
