@@ -1,16 +1,16 @@
 action: train # train or test
 name: ta3n # name of the experiment needed for the logs
 modality: ["RGB"] # modality used
-total_batch: 256 # total batch size if training is done with gradient accumulation
-batch_size: 64 # batch size for the forward
-gpus:  # gpus adopted
-wandb_name: null # needed for wandb logging
+total_batch: 128 # total batch size if training is done with gradient accumulation
+batch_size: 32 # batch size for the forward
+gpus: cuda  # gpus adopted
+wandb_name: mldl-23 # needed for wandb logging
 resume_from: #./checkpoints/I3D_SourceOnlyD1 # checkpoint directory
 logname: null # name of the logs
 models_dir: null # directory containing all the models
 
 train:
-  num_iter: 3000 # number of training iterations with total_batch size
+  num_iter: 2000 # number of training iterations with total_batch size
   lr_steps: 1000 # steps before reducing learning rate
   eval_freq: 50 # evaluation frequency
   num_clips: 5 # clips adopted in training
@@ -29,11 +29,12 @@ test:
 dataset:
   annotations_path: train_val # path for the annotations data
   shift: D1-D2 # shifts of the dataset
-  workers: 4 # number of workers for the dataloader
+  workers: 4 # number of workers for the dataloader 
+  persistentWorkers: True
   stride: 2 # stride in case of dense sampling
   resolution: 224 # input resolution to the model
   RGB:
-    data_path: ??? # path to RGB data
+    data_path: ek_data # path to RGB data
     tmpl: "img_{:010d}.jpg" # format of RGB filenames
     features_name: test_feat_kinetics
   Event: # not neeeded for the project
@@ -45,12 +46,17 @@ models:
     model: Classifier
     normalize: False
     kwargs: {}
-    lr_steps: 1000
-    lr: 1e-2
-    sgd_momentum: 0.8
+    lr_steps: 1500
+    lr: 0.03
+    gamma: 0.05
+    l_s: 0.75
+    l_r: 0.75
+    l_t: 0.75
+    sgd_momentum: 0.9
     weight_decay: 1e-7
-    temporal-type: TRN #or TRN
+    temporal-type: TRN
     ablation: 
       gsd: True
       gtd: True
       grd: True
+      domainA: True

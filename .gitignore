@@ -1,7 +1,7 @@
 # Created by .ignore support plugin (hsz.mobi)
 ### Python template
 # Byte-compiled / optimized / DLL files
-__pycache__/
+#__pycache__
 *.py[cod]
 *$py.class
 
@@ -30,10 +30,16 @@ ek_data/
 configs/debug.yaml
 annotations/
 checkpoints/
-saved_models/
-experiment_logs/
 train_images/
-#saved_features/
+saved_models/
+Experiment_logs/
+wandb/
+utils/__pycache__
+tasks/__pycache__/
+models/__pycache__/
+modules/__pycache__/
+
+
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -194,3 +200,6 @@ fabric.properties
 # .idea
 
 utils/output
+models/__pycache__/
+tasks/__pycache__/
+utils/__pycache__/loaders.cpython-310.pyc

@@ -13,7 +13,7 @@ import os
 import models as model_list
 import tasks
 import wandb
-from torch import autograd
+import matplotlib.pyplot as plt
 
 # global variables among training functions
 training_iterations = 0
@@ -29,14 +29,14 @@ def init_operations():
     logger.info("Running with parameters: " + pformat_dict(args, indent=1))
 
     # this is needed for multi-GPUs systems where you just want to use a predefined set of GPUs
-    #if args.gpus is not None:
-    #    logger.debug('Using only these GPUs: {}'.format(args.gpus))
-    #    os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpus)
+    if args.gpus is not None:
+        logger.debug('Using only these GPUs: {}'.format(args.gpus))
+        os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpus)
 
     # wanbd logging configuration
     if args.wandb_name is not None:
-        wandb.init(group=args.wandb_name) #dir=args.wandb_dir
-        wandb.run.name = args.name + "_" + args.dataset.shift.split("-")[0] + "_" + args.dataset.shift.split("-")[-1]
+        wandb.init(group=args.wandb_name, dir=args.wandb_dir)
+        wandb.run.name = args.name + "_" + args.shift.split("-")[0] + "_" + args.shift.split("-")[-1]
 
 
 def main():
@@ -48,13 +48,8 @@ def main():
     # this will output the domain conversion (D1 -> 8, et cetera) and the label list
     num_classes, valid_labels, source_domain, target_domain = utils.utils.get_domains_and_labels(args)
     # device where everything is run
-    #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    if(args.gpus == "mps"):
-        device = torch.device("mps:0" if torch.backends.mps.is_available() else "cpu")
-    elif(args.gpus == "cuda"):
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    else: 
-        device = torch.device("cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     # these dictionaries are for more multi-modal training/testing, each key is a modality used
     models = {}
     logger.info("Instantiating models per modality")
@@ -62,12 +57,12 @@ def main():
         logger.info('{} Net\tModality: {}'.format(args.models[m].model, m))
         # notice that here, the first parameter passed is the input dimension
         # In our case it represents the feature dimensionality which is equivalent to 1024 for I3D
-        models[m] = getattr(model_list, args.models[m].model)(num_classes,[5,1024],args.models['RGB']["temporal-type"],args.models['RGB']["ablation"],device)
+        models[m] = getattr(model_list, args.models[m].model)(num_classes,[5,1024],"Base",[1,1,1,1])
 
     # the models are wrapped into the ActionRecognition task which manages all the training steps
-    action_classifier = tasks.TA3N_task("action-classifier", models, args.batch_size,
+    action_classifier = tasks.base_task("action-classifier", models, args.batch_size,
                                                 args.total_batch, args.models_dir, num_classes,
-                                                args.train.num_clips, args.models, args=args,device=device)
+                                                args.train.num_clips, args.models, args=args)
     action_classifier.load_on_gpu(device)
 
     if args.action == "train":
@@ -83,27 +78,18 @@ def main():
                                                                        'train', args.dataset, None, None, None,
                                                                        None, load_feat=True),
                                                    batch_size=args.batch_size, shuffle=True,
-                                                   num_workers=args.dataset.workers, pin_memory=True, drop_last=True,persistent_workers=args.dataset.persistentWorkers)
-        target_loader = torch.utils.data.DataLoader(EpicKitchensDataset(args.dataset.shift.split("-")[-1], modalities,
-                                                                       'domainAdapt', args.dataset, None, None, None,
-                                                                       None, load_feat=True),
-                                                   batch_size=args.batch_size, shuffle=True,
-                                                   num_workers=args.dataset.workers, pin_memory=True, drop_last=True,persistent_workers=args.dataset.persistentWorkers)
+                                                   num_workers=args.dataset.workers, pin_memory=True, drop_last=True)
 
         val_loader = torch.utils.data.DataLoader(EpicKitchensDataset(args.dataset.shift.split("-")[-1], modalities,
-                                                                     'domainAdapt', args.dataset, None, None, None,
+                                                                     'val', args.dataset, None, None, None,
                                                                      None, load_feat=True),
                                                  batch_size=args.batch_size, shuffle=False,
-                                                 num_workers=args.dataset.workers, pin_memory=True, drop_last=False,persistent_workers=args.dataset.persistentWorkers)
-        loss_train = train(action_classifier, train_loader,target_loader, val_loader, device, num_classes)
-        #                 loss_train_D1_to_D2_TRN/base_gsd1/0_gtd0/1_grd0/1_lr_sgdMomval_weightDecay
-        
-        loss_file_name = "train_images/loss_train_"+args.dataset.shift.split("-")[0]+"_to_"+args.dataset.shift.split("-")[-1]+"_" \
-                            +args.models.RGB["temporal-type"]+"_gsd_"+str(args.models.RGB.ablation["gsd"])+"_gtd_"+str(args.models.RGB.ablation["gtd"]) \
-                            +"_grd_"+str(args.models.RGB.ablation["grd"])+"_lr_"+str(args.models.RGB.lr)+"_sgdMom_"+str(args.models.RGB.sgd_momentum)+ \
-                                "_weightDecay_"+str(args.models.RGB.weight_decay) +".pt"
-        torch.save(loss_train, loss_file_name)
-        
+                                                 num_workers=args.dataset.workers, pin_memory=True, drop_last=False)
+        train_loss = train(action_classifier, train_loader, val_loader, device, num_classes)
+        torch.save(train_loss, 'train_images/loss_train_baseTD.pt')
+        #Plot the loss curve
+        saveLossPlot(train_loss,training_iterations//4)
+
     elif args.action == "validate":
         if args.resume_from is not None:
             action_classifier.load_last_model(args.resume_from)
@@ -116,7 +102,7 @@ def main():
         validate(action_classifier, val_loader, device, action_classifier.current_iter, num_classes)
 
 
-def train(action_classifier, train_loader, target_loader,val_loader, device, num_classes):
+def train(action_classifier, train_loader, val_loader, device, num_classes):
     """
     function to train the model on the test set
     action_classifier: Task containing the model to be trained
@@ -128,12 +114,16 @@ def train(action_classifier, train_loader, target_loader,val_loader, device, num
     global training_iterations, modalities
 
     data_loader_source = iter(train_loader)
-    data_loader_target = iter(target_loader)
+    data_loader_target = iter(val_loader)
+
     action_classifier.train(True)
     action_classifier.zero_grad()
+
     iteration = action_classifier.current_iter * (args.total_batch // args.batch_size)
 
-    loss_train = torch.zeros([int(training_iterations / (args.total_batch // args.batch_size)),4]) #
+    min_dataset_size = min(len(data_loader_target._dataset), len(data_loader_source._dataset))
+    
+    loss_train = torch.zeros([int(training_iterations/ (args.total_batch // args.batch_size)),2])
     # the batch size should be total_batch but batch accumulation is done with batch size = batch_size.
     # real_iter is the number of iterations if the batch size was really total_batch
     for i in range(int(iteration), training_iterations):
@@ -154,40 +144,27 @@ def train(action_classifier, train_loader, target_loader,val_loader, device, num
         # to redefine the iterator
         try:
             source_data, source_label = next(data_loader_source)
-            source_label_domain = 0*torch.ones([args.batch_size], dtype=int)
-    
-            if (i%(len(data_loader_source._dataset)//args.batch_size))==0:
+            target_data, target_label = next(data_loader_target)
+            
+            if (i%(min_dataset_size//args.batch_size))==0:
                 #check if last batch of the smallest dataloader is smaller than batch_size
                 raise StopIteration
         except StopIteration:
             #reset source dataloader
             data_loader_source = iter(train_loader) # TODO forse conviene separare i controlli sulla fine dei dataloader?
             source_data, source_label = next(data_loader_source)
-            source_label_domain = 0*torch.ones([args.batch_size], dtype=int)
-
-        try:
-            target_data, target_label = next(data_loader_target)
-            target_label_domain = 1*torch.ones([args.batch_size], dtype = int)
-            
-            if (i%(len(data_loader_target._dataset)//args.batch_size))==0:
-                #check if last batch of the smallest dataloader is smaller than batch_size
-                raise StopIteration
-        except StopIteration:
             #reset target dataloader
             data_loader_target = iter(val_loader)
             target_data, target_label = next(data_loader_target)
-            target_label_domain = 1*torch.ones([args.batch_size], dtype = int)
         end_t = datetime.now()
 
-        #TODO uncomment
-        #logger.info(f"Iteration {i}/{training_iterations} batch retrieved! Elapsed time = "
-        #            f"{(end_t - start_t).total_seconds() // 60} m {(end_t - start_t).total_seconds() % 60} s")
+        logger.info(f"Iteration {i}/{training_iterations} batch retrieved! Elapsed time = "
+                    f"{(end_t - start_t).total_seconds() // 60} m {(end_t - start_t).total_seconds() % 60} s")
 
         ''' Action recognition'''
         "******** We start by using the source ****************"
         source_label = source_label.to(device)
-        source_label_domain= source_label_domain.to(device)
-        target_label_domain= target_label_domain.to(device)
+
         data_s = {}
         data_t ={}
        
@@ -197,25 +174,29 @@ def train(action_classifier, train_loader, target_loader,val_loader, device, num
         for m in modalities:
             data_t[m] = target_data[m].to(device)
         
-
-       
         #forward on source
-        logits_s = action_classifier.forward(data_s)
-        #forward on target
+        logits_s= action_classifier.forward(data_s)
+        #compute loss on source
+        action_classifier.compute_loss(logits_s, source_label, loss_weight=1, domain="source")
+        
+         #forward on source
         logits_t = action_classifier.forward(data_t)
         #compute loss on source
-        action_classifier.compute_loss3(logits_s,logits_t, source_label, source_label_domain,target_label_domain, loss_weight=1)
+        action_classifier.compute_loss(logits_t, source_label, loss_weight=1, domain="target")
+        
         #backward based on updated losses
-        action_classifier.backward()
+        action_classifier.backward(retain_graph=False)
         #accuracy update
         action_classifier.compute_accuracy(logits_s, source_label)
+
         # update weights and zero gradients if total_batch samples are passed
         if gradient_accumulation_step:
             logger.info("[%d/%d]\tlast Verb loss: %.4f\tMean verb loss: %.4f\tAcc@1: %.2f%%\tAccMean@1: %.2f%%" %
                         (real_iter, args.train.num_iter, action_classifier.loss.val, action_classifier.loss.avg,
                          action_classifier.accuracy.val[1], action_classifier.accuracy.avg[1]))
-            #save loss
-            loss_train[i//4] = action_classifier.get_losses()
+            loss_train[i//(args.total_batch // args.batch_size),0] = torch.mean(action_classifier.loss_class.val)
+            loss_train[i//(args.total_batch // args.batch_size),1] = torch.mean(action_classifier.loss_td.val)
+            
             action_classifier.check_grad()
             action_classifier.step()
             action_classifier.zero_grad()
@@ -235,7 +216,6 @@ def train(action_classifier, train_loader, target_loader,val_loader, device, num
 
             action_classifier.save_model(real_iter, val_metrics['top1'], prefix=None)
             action_classifier.train(True)
-
     return loss_train
 
 def validate(model, val_loader, device, it, num_classes):
@@ -257,6 +237,7 @@ def validate(model, val_loader, device, it, num_classes):
     with torch.no_grad():
         for i_val, (data, label) in enumerate(val_loader):
             label = label.to(device)
+
             logits = model(data)
             model.compute_accuracy(logits, label)
 
@@ -284,6 +265,14 @@ def validate(model, val_loader, device, it, num_classes):
 
     return test_results
 
+def saveLossPlot(train_loss,training_iterations):
+    #Plot the loss curve
+    t = np.arange(0,training_iterations)
+    plt.figure()
+    plt.plot(t,train_loss.detach().numpy())
+    plt.grid()
+    name_file = "train_images/train_loss_"+args['name']+"_"+args['train']['lr_steps']+ args['models']['RGB']['lr']+"_"+args['models']['RGB']['sgd_momentum']+"_"+args['models']['RGB']['weight_decay']+".png"
+    plt.savefig(name_file)
 
 if __name__ == '__main__':
     main()
