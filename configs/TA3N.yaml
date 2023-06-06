@@ -4,7 +4,7 @@ modality: ["RGB"] # modality used
 total_batch: 128 # total batch size if training is done with gradient accumulation
 batch_size: 32 # batch size for the forward
 gpus: cuda  # gpus adopted
-wandb_name: Trn-AllNoAtt-D3-D2 # needed for wandb logging
+wandb_name: Trn-AllAtt-D3-D2 # needed for wandb logging
 wandb_dir: wand_db
 resume_from: #./checkpoints/I3D_SourceOnlyD1 # checkpoint directory
 logname: Experiment_logs # name of the logs
@@ -49,7 +49,10 @@ models:
     kwargs: {}
     lr_steps: 1500
     lr: 1e-2
-    gamma: 0.0
+    gamma: 0.1
+    l_s: 1
+    l_r: 1
+    l_t: 1
     sgd_momentum: 0.9
     weight_decay: 1e-7
     temporal-type: TRN
@@ -57,4 +60,4 @@ models:
       gsd: True
       gtd: True
       grd: True
-      domainA: False
+      domainA: True

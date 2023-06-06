@@ -203,7 +203,7 @@ def train(action_classifier, train_loader, target_loader,val_loader, device, num
         #forward on target
         logits_t = action_classifier.forward(data_t)
         #compute loss on source
-        action_classifier.compute_loss2(logits_s,logits_t, source_label, source_label_domain,target_label_domain, loss_weight=1)
+        action_classifier.compute_loss3(logits_s,logits_t, source_label, source_label_domain,target_label_domain, loss_weight=1)
         #backward based on updated losses
         action_classifier.backward()
         #accuracy update
