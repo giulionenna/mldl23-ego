@@ -14,7 +14,7 @@ class MultiModal_task(tasks.Task, ABC):
     
     def __init__(self, name: str, task_models: Dict[str, torch.nn.Module], batch_size: int, 
                  total_batch: int, models_dir: str, num_classes: int,
-                 num_clips: int, model_args: Dict[str, float], args,device, **kwargs) -> None:
+                 num_clips: int, model_args: Dict[str, float], args,device, loss_weights, **kwargs) -> None:
         """Create an instance of the action recognition model.
 
         Parameters
@@ -59,10 +59,16 @@ class MultiModal_task(tasks.Task, ABC):
         self.batch_size = batch_size
         self.device = device
 
-        self.gamma = model_args['RGB'].gamma #TODO check this gamma for multiple modalities
-        self.l_s = model_args['RGB'].l_s
-        self.l_r = model_args['RGB'].l_r
-        self.l_t = model_args['RGB'].l_t
+        if loss_weights is None:
+            self.gamma = model_args['RGB'].gamma 
+            self.l_s = model_args['RGB'].l_s
+            self.l_r = model_args['RGB'].l_r
+            self.l_t = model_args['RGB'].l_t
+        else:
+            self.gamma = loss_weights['gamma']
+            self.l_s = loss_weights['l_s']
+            self.l_r = loss_weights['l_r']
+            self.l_t = loss_weights['l_t']
         # Use the cross entropy loss as the default criterion for the classification task
         self.criterion_class = torch.nn.CrossEntropyLoss(weight=None, size_average=None, ignore_index=-100,
                                                    reduce=None, reduction='none')

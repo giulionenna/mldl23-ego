@@ -125,10 +125,10 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 
-def pformat_dict(d, indent=0):
+def pformat_dict(d, indent=0, colon = '\n'):
     fstr = ""
     for key, value in d.items():
-        fstr += '\n' + '  ' * indent + str(key) + ":"
+        fstr += colon + '  ' * indent + str(key) + ":"
         if isinstance(value, Mapping):
             fstr += pformat_dict(value, indent+1)
         else:

@@ -22,11 +22,20 @@ np.random.seed(13696641)
 torch.manual_seed(13696641)
 
 
-def init_operations():
+def init_operations(temporal_type = None, ablation = None, loss_weights = None, shift = None):
     """
     parse all the arguments, generate the logger, check gpus to be used and wandb
     """
-    logger.info("Running with parameters: " + pformat_dict(args, indent=1))
+    if temporal_type is None and ablation is None and loss_weights is None and shift is None:
+        logger.info("Running with parameters: " + pformat_dict(args, indent=1))
+    else:
+        logger.info("Performing Grid Search Step with parameters: \n "+
+                     'Temporal type: \t' + temporal_type + '\n'+ 
+                       'Ablation \t' + pformat_dict(ablation, indent = 0, colon = '\t') + '\n' + 
+                       'Weights \t' + pformat_dict(loss_weights, indent = 0, colon = '\t') + '\n' +
+                       'Source Shift \t' + shift[0]+ '\n' + 
+                       'Target Shift \t' + shift[1] + '\n' 
+                       )
 
     # this is needed for multi-GPUs systems where you just want to use a predefined set of GPUs
     #if args.gpus is not None:
@@ -52,9 +61,9 @@ def init_operations():
                     "domainA":  args["models"]["RGB"]["ablation"]["domainA"]
                    })
 
-def main():
+def main_train(temporal_type = None, ablation = None, loss_weights = None, shift = None):
     global training_iterations, modalities
-    init_operations()
+    init_operations(temporal_type, ablation , loss_weights , shift )
     modalities = args.modality
 
     # recover valid paths, domains, classes
@@ -75,12 +84,16 @@ def main():
         logger.info('{} Net\tModality: {}'.format(args.models[m].model, m))
         # notice that here, the first parameter passed is the input dimension
         # In our case it represents the feature dimensionality which is equivalent to 1024 for I3D
-        models[m] = getattr(model_list, args.models[m].model)(num_classes,[5,1024],args.models[m]["temporal-type"],args.models[m]["ablation"],device)
+        if temporal_type is None:
+            temporal_type = args.models[m]['temporal-type']
+        if ablation is None:
+            ablation = args.models[m]['ablation']
+        models[m] = getattr(model_list, args.models[m].model)(num_classes,[5,1024], temporal_type , ablation ,device)
 
     # the models are wrapped into the ActionRecognition task which manages all the training steps
     action_classifier = tasks.MultiModal_task("action-classifier", models, args.batch_size,
                                                 args.total_batch, args.models_dir, num_classes,
-                                                args.train.num_clips, args.models, args=args,device=device)
+                                                args.train.num_clips, args.models, args=args, device=device, loss_weights = loss_weights)
     action_classifier.load_on_gpu(device)
 
     if args.action == "train":
@@ -92,29 +105,38 @@ def main():
         # notice, here it is multiplied by tot_batch/batch_size since gradient accumulation technique is adopted
         training_iterations = args.train.num_iter * (args.total_batch // args.batch_size)
         # all dataloaders are generated here
-        train_loader = torch.utils.data.DataLoader(EpicKitchensDataset(args.dataset.shift.split("-")[0], modalities,
+        
+        if shift is None:
+            source_shift = args.dataset.shift.split("-")[0]
+            target_shift = args.dataset.shift.split("-")[-1]
+        else:
+            source_shift = shift[0]
+            target_shift = shift[1]
+        
+        train_loader = torch.utils.data.DataLoader(EpicKitchensDataset(source_shift, modalities,
                                                                        'train', args.dataset, None, None, None,
                                                                        None, load_feat=True),
                                                    batch_size=args.batch_size, shuffle=True,
                                                    num_workers=args.dataset.workers, pin_memory=True, drop_last=True,persistent_workers=args.dataset.persistentWorkers)
-        target_loader = torch.utils.data.DataLoader(EpicKitchensDataset(args.dataset.shift.split("-")[-1], modalities,
+        target_loader = torch.utils.data.DataLoader(EpicKitchensDataset(target_shift, modalities,
                                                                        'domainAdapt', args.dataset, None, None, None,
                                                                        None, load_feat=True),
                                                    batch_size=args.batch_size, shuffle=True,
                                                    num_workers=args.dataset.workers, pin_memory=True, drop_last=True,persistent_workers=args.dataset.persistentWorkers)
 
-        val_loader = torch.utils.data.DataLoader(EpicKitchensDataset(args.dataset.shift.split("-")[-1], modalities,
+        val_loader = torch.utils.data.DataLoader(EpicKitchensDataset(target_shift, modalities,
                                                                      'val', args.dataset, None, None, None,
                                                                      None, load_feat=True),
                                                  batch_size=args.batch_size, shuffle=False,
                                                  num_workers=args.dataset.workers, pin_memory=True, drop_last=False,persistent_workers=args.dataset.persistentWorkers)
-        loss_train = train(action_classifier, train_loader,target_loader, val_loader, device, num_classes)
+        loss_train, best_score = train(action_classifier, train_loader,target_loader, val_loader, device, num_classes)
         #                 loss_train_D1_to_D2_TRN/base_gsd1/0_gtd0/1_grd0/1_lr_sgdMomval_weightDecay
         loss_file_name = "train_images/loss_train_"+args.dataset.shift.split("-")[0]+"_to_"+args.dataset.shift.split("-")[-1]+"_" \
                             +args.models.RGB["temporal-type"]+"_gsd_"+str(args.models.RGB.ablation["gsd"])+"_gtd_"+str(args.models.RGB.ablation["gtd"]) \
                             +"_grd_"+str(args.models.RGB.ablation["grd"])+"_lr_"+str(args.models.RGB.lr)+"_sgdMom_"+str(args.models.RGB.sgd_momentum)+ \
                                 "_weightDecay_"+str(args.models.RGB.weight_decay) +".pt"
         torch.save(loss_train, loss_file_name)
+        return loss_train, best_score
         
     elif args.action == "validate":
         if args.resume_from is not None:
@@ -259,7 +281,7 @@ def train(action_classifier, train_loader, target_loader,val_loader, device, num
             action_classifier.save_model(real_iter, val_metrics['top1'], prefix=None)
             action_classifier.train(True)
 
-    return loss_train
+    return loss_train, action_classifier.best_iter_score
 
 def validate(model, val_loader, device, it, num_classes):
     """
@@ -310,4 +332,4 @@ def validate(model, val_loader, device, it, num_classes):
 
 
 if __name__ == '__main__':
-    main()
+    main_train()
