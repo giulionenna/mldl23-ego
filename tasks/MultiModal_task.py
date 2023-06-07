@@ -60,6 +60,9 @@ class MultiModal_task(tasks.Task, ABC):
         self.device = device
 
         self.gamma = model_args['RGB'].gamma #TODO check this gamma for multiple modalities
+        self.l_s = model_args['RGB'].l_s
+        self.l_r = model_args['RGB'].l_r
+        self.l_t = model_args['RGB'].l_t
         # Use the cross entropy loss as the default criterion for the classification task
         self.criterion_class = torch.nn.CrossEntropyLoss(weight=None, size_average=None, ignore_index=-100,
                                                    reduce=None, reduction='none')

@@ -36,7 +36,7 @@ def init_operations():
     # wanbd logging configuration
     if args.wandb_name is not None:
         name = args.name + "_" + args["dataset"]["shift"].split("-")[0] + "_" + args["dataset"]["shift"].split("-")[-1]+"_lr_"+str(args.models.RGB.lr)
-        wandb.init(group=args.wandb_name, dir=args.wandb_dir)
+        wandb.init(group=args.wandb_name)
         wandb.run.name = name
         wandb.log({"lr": args.models.RGB.lr,
                    "gamma": args["models"]["RGB"]["gamma"],
