@@ -229,12 +229,13 @@ def train(action_classifier, train_loader, target_loader,val_loader, device, num
             #save loss
             loss_train[i//4] = action_classifier.get_losses()
             #wandb
-            wandb.log({"loss":  action_classifier.loss.val, 
-                       "loss_sd": torch.mean(torch.tensor(action_classifier.loss_sd.val,dtype=float)),
-                       "loss_td": torch.mean(torch.tensor(action_classifier.loss_td.val,dtype=float)),
-                       "loss_rd": torch.mean(torch.tensor(action_classifier.loss_rd.val,dtype=float)),
-                       "loss_ae": torch.mean(torch.tensor(action_classifier.loss_ae.val,dtype=float))
-                       })
+            if args.wandb_name is not None:
+                wandb.log({"loss":  action_classifier.loss.val, 
+                        "loss_sd": torch.mean(torch.tensor(action_classifier.loss_sd.val,dtype=float)),
+                        "loss_td": torch.mean(torch.tensor(action_classifier.loss_td.val,dtype=float)),
+                        "loss_rd": torch.mean(torch.tensor(action_classifier.loss_rd.val,dtype=float)),
+                        "loss_ae": torch.mean(torch.tensor(action_classifier.loss_ae.val,dtype=float))
+                        })
 
             action_classifier.check_grad()
             action_classifier.step()
@@ -253,7 +254,8 @@ def train(action_classifier, train_loader, target_loader,val_loader, device, num
                 action_classifier.best_iter = real_iter
                 action_classifier.best_iter_score = val_metrics['top1']
 
-            wandb.log({"acc":  action_classifier.best_iter_score})
+            if args.wandb_name is not None:
+                wandb.log({"acc":  action_classifier.best_iter_score})
             action_classifier.save_model(real_iter, val_metrics['top1'], prefix=None)
             action_classifier.train(True)
 
