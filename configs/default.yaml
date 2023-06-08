@@ -10,7 +10,7 @@ logname: null # name of the logs
 models_dir: null # directory containing all the models
 
 train:
-  num_iter: 200 # number of training iterations with total_batch size
+  num_iter: 1000 # number of training iterations with total_batch size
   lr_steps: 1000 # steps before reducing learning rate
   eval_freq: 50 # evaluation frequency
   num_clips: 5 # clips adopted in training
@@ -29,7 +29,7 @@ test:
 dataset:
   annotations_path: train_val # path for the annotations data
   shift: D1-D2 # shifts of the dataset
-  workers: 6 # number of workers for the dataloader 
+  workers: 4 # number of workers for the dataloader 
   persistentWorkers: True
   stride: 2 # stride in case of dense sampling
   resolution: 224 # input resolution to the model
@@ -45,6 +45,7 @@ dataset:
     rgb4e: 6
 
 # these are the action recognition models for each modality
+mid_fusion: True
 models:
   RGB:
     model: Classifier
@@ -82,3 +83,21 @@ models:
       gtd: False
       grd: False
       domainA: False
+  mid_fusion:
+    model: Classifier
+    normalize: False
+    kwargs: {}
+    lr_steps: 1500
+    lr: 0.03
+    gamma: 0.05
+    l_s: 0.75
+    l_r: 0.75
+    l_t: 0.75
+    sgd_momentum: 0.9
+    weight_decay: 1e-7
+    temporal-type: TRN
+    ablation: 
+      gsd: True
+      gtd: True
+      grd: True
+      domainA: True
