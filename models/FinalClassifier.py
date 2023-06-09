@@ -128,7 +128,9 @@ class Classifier(nn.Module):
                     weights = weights.unsqueeze(2).repeat(1,1,TRN_out.shape[2]) #[32,4] -> [32,4,#feat] on dim=2 repeate the element of the second dim
 
 
-                    temporal_aggregation = torch.sum((weights+1)*TRN_out,dim=1)
+                    #temporal_aggregation = torch.sum((weights+1)*TRN_out,dim=1)
+                    temporal_aggregation = nn.AvgPool2d([4,1])((weights+1)*TRN_out)
+                    temporal_aggregation = temporal_aggregation.squeeze(1)
                 else:
                     temporal_aggregation = self.AvgPool(TRN_out).reshape(TRN_out.shape[0],TRN_out.shape[2])
             else:

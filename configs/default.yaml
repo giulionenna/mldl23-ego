@@ -53,37 +53,19 @@ models:
     kwargs: {}
     lr_steps: 1500
     lr: 0.03
-    gamma: 0.05
-    l_s: 0.75
+    gamma: 0
+    l_s: 0.5
     l_r: 0.75
-    l_t: 0.75
+    l_t: 0.5
     sgd_momentum: 0.9
     weight_decay: 1e-7
-    temporal-type: baseline
+    temporal-type: TRN
     ablation: 
-      gsd: False
-      gtd: False
-      grd: False
-      domainA: False
+      gsd: True
+      gtd: True
+      grd: True
+      domainA: True
   audio:
-    model: Classifier
-    normalize: False
-    kwargs: {}
-    lr_steps: 1500
-    lr: 0.03
-    gamma: 0.05
-    l_s: 0.75
-    l_r: 0.75
-    l_t: 0.75
-    sgd_momentum: 0.9
-    weight_decay: 1e-7
-    temporal-type: baseline
-    ablation: 
-      gsd: False
-      gtd: False
-      grd: False
-      domainA: False
-  mid_fusion:
     model: Classifier
     normalize: False
     kwargs: {}
@@ -101,3 +83,21 @@ models:
       gtd: True
       grd: True
       domainA: True
+  mid_fusion:
+    model: Classifier
+    normalize: False
+    kwargs: {}
+    lr_steps: 1500
+    lr: 0.03
+    gamma: 0
+    l_s: 0.5
+    l_r: 0.75
+    l_t: 0.5
+    sgd_momentum: 0.9
+    weight_decay: 1e-7
+    temporal-type: TRN
+    ablation: 
+      gsd: True
+      gtd: True
+      grd: True
+      domainA: False

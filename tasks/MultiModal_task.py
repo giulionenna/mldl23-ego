@@ -14,7 +14,7 @@ class MultiModal_task(tasks.Task, ABC):
     
     def __init__(self, name: str, task_models: Dict[str, torch.nn.Module], batch_size: int, 
                  total_batch: int, models_dir: str, num_classes: int,
-                 num_clips: int, model_args: Dict[str, float], args,device, loss_weights, **kwargs) -> None:
+                 num_clips: int, model_args: Dict[str, float], args,device, loss_weights, ablation, temporal_type, **kwargs) -> None:
         """Create an instance of the action recognition model.
 
         Parameters
@@ -69,6 +69,18 @@ class MultiModal_task(tasks.Task, ABC):
             self.l_s = loss_weights['l_s']
             self.l_r = loss_weights['l_r']
             self.l_t = loss_weights['l_t']
+
+
+        if ablation is None:
+            self.ablation = self.model_args['RGB']['ablation']
+        else:
+            self.ablation = ablation
+
+        if temporal_type is None:
+            self.temporal_type = self.model_args['RGB']['temporal-type']
+        else:
+            self.temporal_type = temporal_type
+
         # Use the cross entropy loss as the default criterion for the classification task
         self.criterion_class = torch.nn.CrossEntropyLoss(weight=None, size_average=None, ignore_index=-100,
                                                    reduce=None, reduction='none')
@@ -125,7 +137,7 @@ class MultiModal_task(tasks.Task, ABC):
         loss+= self.loss_class.val 
 
         loss_sd =0
-        if(self.model_args['RGB']["ablation"]["gsd"]):
+        if(self.ablation["gsd"]):
             fused_logits_sd_source = reduce(lambda x, y: x + y, logits_source["sd"].values())
             fused_logits_sd_target = reduce(lambda x, y: x + y, logits_target["sd"].values())
             loss_sd += self.criterion_sd(fused_logits_sd_source, label_d_source) 
@@ -134,7 +146,7 @@ class MultiModal_task(tasks.Task, ABC):
 
             loss+= 0.5*self.l_s*loss_sd
         loss_td = 0 
-        if(self.model_args['RGB']["ablation"]["gtd"]):    
+        if(self.ablation["gtd"]):    
             fused_logits_td_source = reduce(lambda x, y: x + y, logits_source["td"].values())
             fused_logits_td_target = reduce(lambda x, y: x + y, logits_target["td"].values())
             
@@ -152,7 +164,7 @@ class MultiModal_task(tasks.Task, ABC):
             
             #Update loss           
             loss += 0.5*self.l_s*loss_td+0.5*self.gamma *self.loss_ae.val
-        if(self.model_args['RGB']["temporal-type"]=="TRN" and self.model_args['RGB']["ablation"]["grd"]):
+        if(self.temporal_type=="TRN" and self.ablation["grd"]):
             loss_rd = self.compute_loss_rd(logits_source,logits_target,label_d_source,label_d_target)
             self.loss_rd.update(loss_rd)
 
@@ -264,11 +276,11 @@ class MultiModal_task(tasks.Task, ABC):
     def get_losses(self):
         losses = torch.zeros([4])
         losses[0] = torch.mean(self.loss_class.avg)
-        if(self.model_args['RGB']['ablation']['gsd']):
+        if(self.ablation['gsd']):
             losses[1] = torch.mean(self.loss_sd.avg)
-        if(self.model_args['RGB']['ablation']['gtd']):    
+        if(self.ablation['gtd']):    
             losses[2] = torch.mean(self.loss_td.avg)
-        if(self.model_args['RGB']['ablation']['grd']):    
+        if(self.ablation['grd']):    
             losses[3] = torch.mean(self.loss_rd.avg)
         return losses
     
