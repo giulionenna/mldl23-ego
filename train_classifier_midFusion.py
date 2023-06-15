@@ -102,7 +102,7 @@ def main_train(temporal_type = None, ablation = None, loss_weights = None, shift
     # the models are wrapped into the ActionRecognition task which manages all the training steps
     action_classifier = tasks.MidFusion_task("action-classifier", models, args.batch_size,
                                                 args.total_batch, args.models_dir, num_classes,
-                                                args.train.num_clips, args.models, args=args, device=device, loss_weights = loss_weights)
+                                                args.train.num_clips, args.models, args=args, device=device, loss_weights = loss_weights, ablation=ablation, temporal_type=temporal_type)
     action_classifier.load_on_gpu(device)
 
     if args.action == "train":

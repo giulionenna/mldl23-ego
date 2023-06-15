@@ -63,6 +63,9 @@ def init_operations(temporal_type = None, ablation = None, loss_weights = None, 
 
 def main_train(temporal_type = None, ablation = None, loss_weights = None, shift = None):
     global training_iterations, modalities
+    np.random.seed(13696641)
+    torch.manual_seed(13696641)
+
     init_operations(temporal_type, ablation , loss_weights , shift )
     modalities = args.modality
 
@@ -129,14 +132,16 @@ def main_train(temporal_type = None, ablation = None, loss_weights = None, shift
                                                                      None, load_feat=True),
                                                  batch_size=args.batch_size, shuffle=False,
                                                  num_workers=args.dataset.workers, pin_memory=True, drop_last=False,persistent_workers=args.dataset.persistentWorkers)
-        loss_train, best_score = train(action_classifier, train_loader,target_loader, val_loader, device, num_classes)
+        loss_train, best_score, last_score = train(action_classifier, train_loader,target_loader, val_loader, device, num_classes)
         #                 loss_train_D1_to_D2_TRN/base_gsd1/0_gtd0/1_grd0/1_lr_sgdMomval_weightDecay
         loss_file_name = "train_images/loss_train_"+args.dataset.shift.split("-")[0]+"_to_"+args.dataset.shift.split("-")[-1]+"_" \
                             +args.models.RGB["temporal-type"]+"_gsd_"+str(args.models.RGB.ablation["gsd"])+"_gtd_"+str(args.models.RGB.ablation["gtd"]) \
                             +"_grd_"+str(args.models.RGB.ablation["grd"])+"_lr_"+str(args.models.RGB.lr)+"_sgdMom_"+str(args.models.RGB.sgd_momentum)+ \
                                 "_weightDecay_"+str(args.models.RGB.weight_decay) +".pt"
         torch.save(loss_train, loss_file_name)
-        return loss_train, best_score
+        
+        score = {'best': best_score, 'last': last_score}
+        return loss_train, score
         
     elif args.action == "validate":
         if args.resume_from is not None:
@@ -266,7 +271,7 @@ def train(action_classifier, train_loader, target_loader,val_loader, device, num
         # every eval_freq "real iteration" (iterations on total_batch) the validation is done, notice we validate and
         # save the last 9 models
         if gradient_accumulation_step and real_iter % args.train.eval_freq == 0:
-            val_metrics = validate(action_classifier, val_loader, device, int(real_iter), num_classes)
+            val_metrics, last_acc = validate(action_classifier, val_loader, device, int(real_iter), num_classes)
             
             if val_metrics['top1'] <= action_classifier.best_iter_score:
                 logger.info("New best accuracy {:.2f}%"
@@ -281,7 +286,7 @@ def train(action_classifier, train_loader, target_loader,val_loader, device, num
             action_classifier.save_model(real_iter, val_metrics['top1'], prefix=None)
             action_classifier.train(True)
 
-    return loss_train, action_classifier.best_iter_score
+    return loss_train, action_classifier.best_iter_score, last_acc
 
 def validate(model, val_loader, device, it, num_classes):
     """
@@ -328,7 +333,7 @@ def validate(model, val_loader, device, it, num_classes):
                                          f'{args.dataset.shift.split("-")[-1]}.txt'), 'a+') as f:
         f.write("[%d/%d]\tAcc@top1: %.2f%%\n" % (it, args.train.num_iter, test_results['top1']))
 
-    return test_results
+    return test_results, model.accuracy.avg[1]
 
 
 if __name__ == '__main__':
