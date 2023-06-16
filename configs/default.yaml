@@ -1,6 +1,6 @@
 action: train # train or test
 name: ta3n # name of the experiment needed for the logs
-modality: ["RGB"] # modality used
+modality: ["RGB","audio"] # modality used
 total_batch: 128 # total batch size if training is done with gradient accumulation
 batch_size: 32 # batch size for the forward
 gpus: cuda  # gpus adopted
@@ -10,7 +10,7 @@ logname: null # name of the logs
 models_dir: null # directory containing all the models
 
 train:
-  num_iter: 1000 # number of training iterations with total_batch size
+  num_iter: 5000 # number of training iterations with total_batch size
   lr_steps: 1000 # steps before reducing learning rate
   eval_freq: 50 # evaluation frequency
   num_clips: 5 # clips adopted in training
@@ -45,7 +45,8 @@ dataset:
     rgb4e: 6
 
 # these are the action recognition models for each modality
-mid_fusion: True
+mid_fusion: False
+audio_attention: True
 models:
   RGB:
     model: Classifier
@@ -59,12 +60,12 @@ models:
     l_t: 0.5
     sgd_momentum: 0.9
     weight_decay: 1e-7
-    temporal-type: TRN
+    temporal-type: Baseline
     ablation: 
-      gsd: True
-      gtd: True
-      grd: True
-      domainA: True
+      gsd: False
+      gtd: False
+      grd: False
+      domainA: False
   audio:
     model: Classifier
     normalize: False
@@ -77,12 +78,12 @@ models:
     l_t: 0.75
     sgd_momentum: 0.9
     weight_decay: 1e-7
-    temporal-type: TRN
+    temporal-type: Baseline
     ablation: 
-      gsd: True
-      gtd: True
-      grd: True
-      domainA: True
+      gsd: False
+      gtd: False
+      grd: False
+      domainA: False
   mid_fusion:
     model: Classifier
     normalize: False

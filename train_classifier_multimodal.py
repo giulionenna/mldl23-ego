@@ -22,7 +22,7 @@ np.random.seed(13696641)
 torch.manual_seed(13696641)
 
 
-def init_operations(temporal_type = None, ablation = None, loss_weights = None, shift = None):
+def init_operations(temporal_type = None, ablation = None, loss_weights = None,audio_attention= None, shift = None):
     """
     parse all the arguments, generate the logger, check gpus to be used and wandb
     """
@@ -31,6 +31,7 @@ def init_operations(temporal_type = None, ablation = None, loss_weights = None, 
     else:
         logger.info("Performing Grid Search Step with parameters: \n "+
                      'Temporal type: \t' + temporal_type + '\n'+ 
+                      'Audio attention: \t' + audio_attention +'\n'+
                        'Ablation \t' + pformat_dict(ablation, indent = 0, colon = '\t') + '\n' + 
                        'Weights \t' + pformat_dict(loss_weights, indent = 0, colon = '\t') + '\n' +
                        'Source Shift \t' + shift[0]+ '\n' + 
@@ -58,15 +59,16 @@ def init_operations(temporal_type = None, ablation = None, loss_weights = None, 
                    "gsd": args["models"]["RGB"]["ablation"]["gsd"],
                     "gtd":  args["models"]["RGB"]["ablation"]["gtd"],
                     "grd":  args["models"]["RGB"]["ablation"]["grd"],
-                    "domainA":  args["models"]["RGB"]["ablation"]["domainA"]
+                    "domainA":  args["models"]["RGB"]["ablation"]["domainA"],
+                    "audio_attention": args["audio_attention"]
                    })
 
-def main_train(temporal_type = None, ablation = None, loss_weights = None, shift = None):
+def main_train(temporal_type = None, ablation = None, loss_weights = None, audio_attention =  None,shift = None):
     global training_iterations, modalities
     np.random.seed(13696641)
     torch.manual_seed(13696641)
 
-    init_operations(temporal_type, ablation , loss_weights , shift )
+    init_operations(temporal_type, ablation , loss_weights ,audio_attention, shift )
     modalities = args.modality
 
     # recover valid paths, domains, classes
@@ -96,7 +98,9 @@ def main_train(temporal_type = None, ablation = None, loss_weights = None, shift
     # the models are wrapped into the ActionRecognition task which manages all the training steps
     action_classifier = tasks.MultiModal_task("action-classifier", models, args.batch_size,
                                                 args.total_batch, args.models_dir, num_classes,
-                                                args.train.num_clips, args.models, args=args, device=device, loss_weights = loss_weights, ablation=ablation, temporal_type=temporal_type)
+                                                args.train.num_clips, args.models, args=args, device=device, 
+                                                loss_weights = loss_weights, ablation=ablation, 
+                                                temporal_type=temporal_type,audio_attention=audio_attention)
     action_classifier.load_on_gpu(device)
 
     if args.action == "train":

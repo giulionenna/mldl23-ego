@@ -21,7 +21,7 @@ class Classifier(nn.Module):
         self.n_feat = n_features
         self.temporal_type = temporal_type
         self.ablation_mask = ablation_mask
-        self.batch_size = 32 #TODO *************
+        self.batch_size = 32 
         self.device = device
         #GSF
         n_gsf_out = 512

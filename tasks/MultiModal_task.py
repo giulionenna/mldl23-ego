@@ -7,14 +7,14 @@ import tasks
 from utils.logger import logger
 from torch import nn
 from typing import Dict, Tuple
-
+from modules.AttModule import AttentionModule 
 
 class MultiModal_task(tasks.Task, ABC):
     """Ta3N."""
     
     def __init__(self, name: str, task_models: Dict[str, torch.nn.Module], batch_size: int, 
                  total_batch: int, models_dir: str, num_classes: int,
-                 num_clips: int, model_args: Dict[str, float], args,device, loss_weights, ablation, temporal_type, **kwargs) -> None:
+                 num_clips: int, model_args: Dict[str, float], args,device, loss_weights, ablation, temporal_type,audio_attention, **kwargs) -> None:
         """Create an instance of the action recognition model.
 
         Parameters
@@ -38,7 +38,7 @@ class MultiModal_task(tasks.Task, ABC):
         """
         super().__init__(name, task_models, batch_size, total_batch, models_dir, args, **kwargs)
         self.model_args = model_args
-
+        self.args = args
         # self.accuracy and self.loss track the evolution of the accuracy and the training loss
         self.accuracy = utils.Accuracy(topk=(1, 5), classes=num_classes)
         self.accuracy_class = utils.Accuracy(topk=(1, 5), classes=num_classes)
@@ -80,6 +80,11 @@ class MultiModal_task(tasks.Task, ABC):
             self.temporal_type = self.model_args['RGB']['temporal-type']
         else:
             self.temporal_type = temporal_type
+
+        if audio_attention is None:
+            self.audio_attention = self.args['audio_attention']
+        else:
+            self.audio_attention = audio_attention
 
         # Use the cross entropy loss as the default criterion for the classification task
         self.criterion_class = torch.nn.CrossEntropyLoss(weight=None, size_average=None, ignore_index=-100,
@@ -123,7 +128,14 @@ class MultiModal_task(tasks.Task, ABC):
 
         features = {}
         for i_m, m in enumerate(self.modalities):
-            logits["sd"][m],logits["td"][m],logits["class"][m],logits["rd"][m]= self.task_models[m](x=data[m], **kwargs)
+            if(m=="RGB" and  self.args['audio_attention']):
+                #Audio Attention Mechanism
+                attention_module = AttentionModule([5,1024])
+                new_data = attention_module(data['audio'],data[m])
+                
+                logits["sd"][m],logits["td"][m],logits["class"][m],logits["rd"][m]= self.task_models[m](x=new_data, **kwargs)
+            else:  
+                logits["sd"][m],logits["td"][m],logits["class"][m],logits["rd"][m]= self.task_models[m](x=data[m], **kwargs)
 
         return logits
 
