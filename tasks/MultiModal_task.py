@@ -163,7 +163,7 @@ class MultiModal_task(tasks.Task, ABC):
             self.loss_ae.update(loss_ae_source + loss_ae_target);
             
             #Update loss           
-            loss += 0.5*self.l_s*loss_td+0.5*self.gamma *self.loss_ae.val
+            loss += 0.5*self.l_t*loss_td+0.5*self.gamma *self.loss_ae.val
         if(self.temporal_type=="TRN" and self.ablation["grd"]):
             loss_rd = self.compute_loss_rd(logits_source,logits_target,label_d_source,label_d_target)
             self.loss_rd.update(loss_rd)

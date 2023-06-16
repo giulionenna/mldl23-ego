@@ -1,0 +1,2 @@
+,abl,D1-D2,D1-D3,D2-D1,D2-D3,D3-D1,D3-D2
+0,"{'temporal_type': 'Baseline', 'ablation': {'gsd': False, 'gtd': False, 'grd': False, 'domainA': False}}",42.26666664632162,37.063655030800824,42.52873561464507,41.7864476386037,30.344827533590383,40.39999997965495
