@@ -6,13 +6,13 @@ import torch
 def main():
     np.random.seed(13696641)
     torch.manual_seed(13696641)
-    ablation_list = [{'temporal_type': 'Baseline', 'ablation': {'gsd': False, 'gtd': False, 'grd': False, 'domainA': False}},
-                     {'temporal_type': 'TRN', 'ablation': {'gsd': False, 'gtd': False, 'grd': False, 'domainA': False}},
-                     {'temporal_type': 'Baseline', 'ablation': {'gsd': True, 'gtd': False, 'grd': False, 'domainA': False}},
-                     {'temporal_type': 'TRN', 'ablation': {'gsd': True, 'gtd': False, 'grd': False, 'domainA': False}},
-                     {'temporal_type': 'Baseline', 'ablation': {'gsd': False, 'gtd': True, 'grd': False, 'domainA': False}},
-                     {'temporal_type': 'TRN', 'ablation': {'gsd': False, 'gtd': True, 'grd': False, 'domainA': False}},
-                     {'temporal_type': 'TRN', 'ablation': {'gsd': False, 'gtd': False, 'grd': True, 'domainA': False}},
+    ablation_list = [{'temporal_type': 'Baseline', 'ablation': {'gsd': False, 'gtd': False, 'grd': False, 'domainA': False}},#0
+                     {'temporal_type': 'TRN', 'ablation': {'gsd': False, 'gtd': False, 'grd': False, 'domainA': False}},#1
+                     {'temporal_type': 'Baseline', 'ablation': {'gsd': True, 'gtd': False, 'grd': False, 'domainA': False}},#2
+                     {'temporal_type': 'TRN', 'ablation': {'gsd': True, 'gtd': False, 'grd': False, 'domainA': False}},#3
+                     {'temporal_type': 'Baseline', 'ablation': {'gsd': False, 'gtd': True, 'grd': False, 'domainA': False}},#4
+                     {'temporal_type': 'TRN', 'ablation': {'gsd': False, 'gtd': True, 'grd': False, 'domainA': False}},#5
+                     {'temporal_type': 'TRN', 'ablation': {'gsd': False, 'gtd': False, 'grd': True, 'domainA': False}},#6
                      {'temporal_type': 'TRN', 'ablation': {'gsd': True, 'gtd': True, 'grd': True, 'domainA': False}},
                      {'temporal_type': 'TRN', 'ablation': {'gsd': True, 'gtd': True, 'grd': True, 'domainA': True}}]  
     
@@ -24,7 +24,8 @@ def main():
              'D3-D1',
              'D3-D2']
 
-    vec = [4,5]
+    #vec = [4,5]
+    vec = [1]
     for i in vec:
         final_table = pd.DataFrame(columns=col)
         ablation_entry = ablation_list[i]
@@ -61,7 +62,7 @@ def main():
                     'D3-D1': best_acc['D3-D1'],
                     'D3-D2': best_acc['D3-D2']}
         final_table = final_table.append(new_row, ignore_index=True)
-        run_name = "ta3n_v6"    
+        run_name = "ta3n_v6_2"    
         table_name =  "table_results/"+run_name+"_"+temporal_type+'_gsd_'+ str(ablation_entry['ablation']['gsd'])+ \
                                     '_gtd_'+str(ablation_entry['ablation']['gtd'])+'_grd_'\
                                      +str(ablation_entry['ablation']['grd'])+'domainA'+str(ablation_entry['ablation']['domainA']) \
