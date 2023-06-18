@@ -10,8 +10,8 @@ logname: null # name of the logs
 models_dir: null # directory containing all the models
 
 train:
-  num_iter: 1000 # number of training iterations with total_batch size
-  lr_steps: 1000 # steps before reducing learning rate
+  num_iter: 3000 # number of training iterations with total_batch size
+  lr_steps: 1300 # steps before reducing learning rate
   eval_freq: 50 # evaluation frequency
   num_clips: 5 # clips adopted in training
   dense_sampling: # sampling version adopted in training for each modality
@@ -53,7 +53,7 @@ models:
     kwargs: {}
     lr_steps: 1500
     lr: 0.03
-    gamma: 0
+    gamma: 1
     l_s: 0.5
     l_r: 0.75
     l_t: 0.5
@@ -64,7 +64,7 @@ models:
       gsd: True
       gtd: True
       grd: True
-      domainA: True
+      domainA: False
   audio:
     model: Classifier
     normalize: False

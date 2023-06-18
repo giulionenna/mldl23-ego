@@ -24,16 +24,23 @@ class Classifier(nn.Module):
         self.batch_size = 32 #TODO *************
         self.device = device
         #GSF
+        
         n_gsf_out = 512
         self.n_gsf_out = n_gsf_out
-        self.gsf = nn.Sequential()
-        self.gsf.add_module('gsf_fc1', nn.Linear(self.n_feat[1], n_gsf_out))
-        self.gsf.add_module('gsf_bn1', nn.BatchNorm1d(n_features[0]))
-        self.gsf.add_module('gsf_relu1', nn.LeakyReLU(0.1))
-        self.gsf.add_module('gsf_drop1', nn.Dropout())
-        self.gsf.add_module('gsf_fc2', nn.Linear(n_gsf_out, n_gsf_out))
-        self.gsf.add_module('gsf_bn2', nn.BatchNorm1d(n_features[0]))
-        self.gsf.add_module('gsf_relu2', nn.LeakyReLU(0.1))
+        
+
+        self.gsf_vec = nn.ModuleList()
+        for i in range(self.n_feat[0]):
+            gsf = nn.Sequential()
+            gsf.add_module('gsf_fc1', nn.Linear(self.n_feat[1], n_gsf_out))
+            gsf.add_module('gsf_bn1', nn.BatchNorm1d(n_gsf_out))
+            gsf.add_module('gsf_relu1', nn.LeakyReLU(0.1))
+            gsf.add_module('gsf_drop1', nn.Dropout())
+            gsf.add_module('gsf_fc2', nn.Linear(n_gsf_out, n_gsf_out))
+            gsf.add_module('gsf_bn2', nn.BatchNorm1d(n_gsf_out))
+            gsf.add_module('gsf_relu2', nn.LeakyReLU(0.1))
+           
+            self.gsf_vec += [gsf]
 
         #Spatial Domain Discriminator
         if(ablation_mask["gsd"]):
@@ -102,17 +109,19 @@ class Classifier(nn.Module):
         temporal_domain_out = None
         grd_outs = None
         class_out = None
-
-        x = self.gsf(x)
+        gsf_out = torch.zeros(x.shape[0], self.n_feat[0], self.n_gsf_out).to(self.device)
+        for i in range(self.n_feat[0]):
+            gsf_out[:,i,:] = self.gsf_vec[i](x[:,i,:])
+    
         #spatial domain out
         if(self.ablation_mask["gsd"]):
-            reverse_features = ReverseLayerF.apply(x,alpha)
+            reverse_features = ReverseLayerF.apply(gsf_out,alpha)
             spatial_domain_out = self.gsd(reverse_features.view(-1,5*self.n_gsf_out))
         #temporal aggregation 
         if(self.temporal_type == "TRN"):
-            TRN_out = self.trn(x)
+            TRN_out = self.trn(gsf_out)
             if(self.ablation_mask["grd"]):
-                grd_outs = torch.zeros([x.shape[0],self.n_feat[0]-1,2]).to(self.device)
+                grd_outs = torch.zeros([gsf_out.shape[0],self.n_feat[0]-1,2]).to(self.device)
 
                 for i in range(0,self.n_feat[0]-1):
                     grd_outs[:,i,:] = self.grd_all[i](ReverseLayerF.apply(TRN_out[:,i,:],alpha))
@@ -129,15 +138,16 @@ class Classifier(nn.Module):
 
 
                     #temporal_aggregation = torch.sum((weights+1)*TRN_out,dim=1)
-                    temporal_aggregation = nn.AvgPool2d([4,1])((weights+1)*TRN_out)
-                    temporal_aggregation = temporal_aggregation.squeeze(1)
+                    weighted_to_avg = ((weights+1)*TRN_out).transpose(1,2)
+                    temporal_aggregation = nn.AvgPool1d(4)(weighted_to_avg)
+                    temporal_aggregation = temporal_aggregation.squeeze(2)
                 else:
                     temporal_aggregation = self.AvgPool(TRN_out).reshape(TRN_out.shape[0],TRN_out.shape[2])
             else:
                 #temporal_aggregation = self.AvgPool(TRN_out).reshape(TRN_out.shape[0],TRN_out.shape[2])
                 temporal_aggregation = torch.sum(TRN_out,dim=1)
         else:
-            temporal_aggregation =self.AvgPool(x).reshape(x.shape[0],x.shape[2])
+            temporal_aggregation =self.AvgPool(gsf_out).reshape(gsf_out.shape[0],gsf_out.shape[2])
         #temporal domain
         if(self.ablation_mask["gtd"]):
             temporal_domain_out =  self.gtd(ReverseLayerF.apply(temporal_aggregation,alpha))
