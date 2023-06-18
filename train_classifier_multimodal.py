@@ -44,22 +44,41 @@ def init_operations(temporal_type = None, ablation = None, loss_weights = None, 
 
     # wanbd logging configuration
     if args.wandb_name is not None:
-        name = args.name + "_" + args["dataset"]["shift"].split("-")[0] + "_" + args["dataset"]["shift"].split("-")[-1]+"_lr_"+str(args.models.RGB.lr)
-        wandb.init(group=args.wandb_name)
-        wandb.run.name = name
-        wandb.log({"lr": args.models.RGB.lr,
-                   "gamma": args["models"]["RGB"]["gamma"],
-                   "l_s": args["models"]["RGB"]["l_s"],
-                   "l_r": args["models"]["RGB"]["l_r"],
-                   "l_t": args["models"]["RGB"]["l_t"],
-                   "sgd_momentum": args["models"]["RGB"]["sgd_momentum"],
-                   "weight_decay":args["models"]["RGB"]["weight_decay"],
-                   "temporal-type": args["models"]["RGB"]["temporal-type"],
-                   "gsd": args["models"]["RGB"]["ablation"]["gsd"],
-                    "gtd":  args["models"]["RGB"]["ablation"]["gtd"],
-                    "grd":  args["models"]["RGB"]["ablation"]["grd"],
-                    "domainA":  args["models"]["RGB"]["ablation"]["domainA"]
-                   })
+        if(temporal_type is None and ablation is None and loss_weights is None and shift is None):
+            name = args.name + "_" + args["dataset"]["shift"].split("-")[0] + "_" + args["dataset"]["shift"].split("-")[-1]+"_lr_"+str(args.models.RGB.lr)
+            wandb.init(group=args.wandb_name)
+            wandb.run.name = name
+            wandb.log({"lr": args.models.RGB.lr,
+                       "gamma": args["models"]["RGB"]["gamma"],
+                       "l_s": args["models"]["RGB"]["l_s"],
+                       "l_r": args["models"]["RGB"]["l_r"],
+                       "l_t": args["models"]["RGB"]["l_t"],
+                       "sgd_momentum": args["models"]["RGB"]["sgd_momentum"],
+                       "weight_decay":args["models"]["RGB"]["weight_decay"],
+                       "temporal-type": args["models"]["RGB"]["temporal-type"],
+                       "gsd": args["models"]["RGB"]["ablation"]["gsd"],
+                        "gtd":  args["models"]["RGB"]["ablation"]["gtd"],
+                        "grd":  args["models"]["RGB"]["ablation"]["grd"],
+                        "domainA":  args["models"]["RGB"]["ablation"]["domainA"]
+                       })
+        else:
+            name = args.name + "_" + shift[0] + "_" + shift[1]+"_lr_"+str(args.models.RGB.lr)+temporal_type+"_gsd_"+\
+                             str(ablation["gsd"])+"_gtd_"+str(ablation["gtd"])+"_grd_"+str(ablation["grd"])+"_domainA_"+str(ablation["domainA"])
+            wandb.init(group=args.wandb_name)
+            wandb.run.name = name
+            wandb.log({"lr": args.models.RGB.lr,
+                       "gamma": loss_weights["gamma"],
+                       "l_s": loss_weights["l_s"],
+                       "l_r": loss_weights["l_r"],
+                       "l_t": loss_weights["l_t"],
+                       "sgd_momentum": args["models"]["RGB"]["sgd_momentum"],
+                       "weight_decay":args["models"]["RGB"]["weight_decay"],
+                       "temporal-type":temporal_type,
+                       "gsd": ablation["gsd"],
+                        "gtd":  ablation["gtd"],
+                        "grd":  ablation["grd"],
+                        "domainA":  ablation["domainA"]
+                       })
 
 def main_train(temporal_type = None, ablation = None, loss_weights = None, shift = None):
     global training_iterations, modalities
