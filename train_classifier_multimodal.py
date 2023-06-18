@@ -160,6 +160,7 @@ def main_train(temporal_type = None, ablation = None, loss_weights = None, shift
         torch.save(loss_train, loss_file_name)
         
         score = {'best': best_score, 'last': last_score}
+        wandb.finish()
         return loss_train, score
         
     elif args.action == "validate":
@@ -301,7 +302,8 @@ def train(action_classifier, train_loader, target_loader,val_loader, device, num
                 action_classifier.best_iter_score = val_metrics['top1']
 
             if args.wandb_name is not None:
-                wandb.log({"acc":  action_classifier.best_iter_score})
+                wandb.log({"best_acc":  action_classifier.best_iter_score})
+                wandb.log({"acc_top1":  val_metrics['top1']})
             action_classifier.save_model(real_iter, val_metrics['top1'], prefix=None)
             action_classifier.train(True)
 
