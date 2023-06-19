@@ -24,7 +24,7 @@ def main():
              'D3-D1',
              'D3-D2']
 
-    vec = [4,5,6,7]
+    vec = [8]
     for i in vec:
         final_table = pd.DataFrame(columns=col)
         ablation_entry = ablation_list[i]

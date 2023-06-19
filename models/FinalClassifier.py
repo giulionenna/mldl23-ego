@@ -33,7 +33,7 @@ class Classifier(nn.Module):
         for i in range(self.n_feat[0]):
             gsf = nn.Sequential()
             gsf.add_module('gsf_fc1', nn.Linear(self.n_feat[1], n_gsf_out))
-            gsf.add_module('gsf_relu1', nn.LeakyReLU(0.1))
+            gsf.add_module('gsf_relu1', nn.LeakyReLU(0.1,inplace=True))
             #gsf.add_module('gsf_drop1', nn.Dropout())
             #gsf.add_module('gsf_fc2', nn.Linear(n_gsf_out, n_gsf_out))
             #gsf.add_module('gsf_relu2', nn.LeakyReLU(0.1))
@@ -55,7 +55,7 @@ class Classifier(nn.Module):
             self.gsd = nn.Sequential()
             self.gsd.add_module('gsd_fc1', nn.Linear(n_gsf_out*n_features[0], n_gsd))
             #self.gsd.add_module('gsd_bn1', nn.BatchNorm1d(n_gsd))
-            self.gsd.add_module('gsd_relu1', nn.LeakyReLU(0.1))
+            self.gsd.add_module('gsd_relu1', nn.LeakyReLU(0.1,inplace=True))
             #self.gsd.add_module('gsd_drop1', nn.Dropout())
             #self.gsd.add_module('gsd_fc2', nn.Linear(n_gsd, n_gsd//2))
             #self.gsd.add_module('gsd_bn2', nn.BatchNorm1d( n_gsd//2))
@@ -71,7 +71,7 @@ class Classifier(nn.Module):
         if(temporal_type == "TRN"):
             self.trn = nn.Sequential()
             self.trn.add_module('trn', RelationModuleMultiScale(img_feature_dim=n_gsf_out, num_bottleneck=n_gsf_out, num_frames=n_features[0]))
-            n_grd_out = 256
+            n_grd_out = 512
             self.n_grd_out = n_grd_out
             if(ablation_mask["grd"]):
                 self.grd_all = nn.ModuleList()
@@ -79,7 +79,7 @@ class Classifier(nn.Module):
                     grd = nn.Sequential(
                         nn.Linear(n_gsf_out,n_grd_out),
                         #nn.BatchNorm1d(n_grd_out),
-                        nn.ReLU(True),
+                        nn.LeakyReLU(0.1,inplace=True),
                         #nn.Dropout()
                         #nn.Linear(n_grd_out, n_grd_out//2),
                         #nn.BatchNorm1d(n_grd_out//2),
@@ -108,7 +108,7 @@ class Classifier(nn.Module):
             self.gtd = nn.Sequential()
             self.gtd.add_module('gtd_fc1',     nn.Linear(n_gsf_out, n_gtd))
             #self.gtd.add_module('gtd_bn1',     nn.BatchNorm1d(n_gtd))
-            self.gtd.add_module('gtd_relu1',   nn.LeakyReLU(0.1))
+            self.gtd.add_module('gtd_relu1',   nn.LeakyReLU(0.1,inplace=True))
             #self.gtd.add_module('gtd_drop1',   nn.Dropout())
             #self.gtd.add_module('gtd_fc2',     nn.Linear(n_gtd, n_gtd//2))
             #self.gtd.add_module('gtd_relu2',   nn.LeakyReLU(0.1))      
