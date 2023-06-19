@@ -1,10 +1,10 @@
 action: train # train or test
-name: ta3n_noBN # name of the experiment needed for the logs
+name: ta3n_SeparateBN # name of the experiment needed for the logs
 modality: ["RGB"] # modality used
 total_batch: 128 # total batch size if training is done with gradient accumulation
 batch_size: 32 # batch size for the forward
 gpus: cuda  # gpus adopted
-wandb_name: mldl-23_noBN # needed for wandb logging
+wandb_name: mldl-23_separateBN # needed for wandb logging
 resume_from: #./checkpoints/I3D_SourceOnlyD1 # checkpoint directory
 logname: null # name of the logs
 models_dir: null # directory containing all the models
@@ -59,11 +59,11 @@ models:
     l_t: 0.5
     sgd_momentum: 0.9
     weight_decay: 1e-7
-    temporal-type: TRN
+    temporal-type: Baseline
     ablation: 
       gsd: True
-      gtd: True
-      grd: True
+      gtd: False
+      grd: False
       domainA: False
   audio:
     model: Classifier

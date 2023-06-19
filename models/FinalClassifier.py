@@ -33,23 +33,21 @@ class Classifier(nn.Module):
         for i in range(self.n_feat[0]):
             gsf = nn.Sequential()
             gsf.add_module('gsf_fc1', nn.Linear(self.n_feat[1], n_gsf_out))
-            #gsf.add_module('gsf_bn1', nn.BatchNorm1d(n_gsf_out))
             gsf.add_module('gsf_relu1', nn.LeakyReLU(0.1))
             gsf.add_module('gsf_drop1', nn.Dropout())
             gsf.add_module('gsf_fc2', nn.Linear(n_gsf_out, n_gsf_out))
-            #gsf.add_module('gsf_bn2', nn.BatchNorm1d(n_gsf_out))
             gsf.add_module('gsf_relu2', nn.LeakyReLU(0.1))
            
             self.gsf_vec += [gsf]
-        #Method 2
-        #self.gsf = nn.Sequential()
-        #self.gsf.add_module('gsf_fc1', nn.Linear(self.n_feat[1], n_gsf_out))
-        #self.gsf.add_module('gsf_bn1', nn.BatchNorm1d(n_features[0]))
-        #self.gsf.add_module('gsf_relu1', nn.LeakyReLU(0.1))
-        #self.gsf.add_module('gsf_drop1', nn.Dropout())
-        #self.gsf.add_module('gsf_fc2', nn.Linear(n_gsf_out, n_gsf_out))
-        #self.gsf.add_module('gsf_bn2', nn.BatchNorm1d(n_features[0]))
-        #self.gsf.add_module('gsf_relu2', nn.LeakyReLU(0.1))
+        self.gsf_bn_source = nn.ModuleList()
+        self.gsf_bn_target = nn.ModuleList()
+        for i in range(self.n_feat[0]):
+            bn_s = nn.BatchNorm1d(n_gsf_out)
+            bn_t = nn.BatchNorm1d(n_gsf_out)
+            
+            self.gsf_bn_source +=[bn_s]
+            self.gsf_bn_target +=[bn_t]
+
 
         #Spatial Domain Discriminator
         if(ablation_mask["gsd"]):
@@ -62,7 +60,9 @@ class Classifier(nn.Module):
             self.gsd.add_module('gsd_fc2', nn.Linear(n_gsd, n_gsd//2))
             #self.gsd.add_module('gsd_bn2', nn.BatchNorm1d( n_gsd//2))
             self.gsd.add_module('gsd_relu2', nn.LeakyReLU(0.1))      
-            self.gsd.add_module('gsd_fc3', nn.Linear( n_gsd//2, 2))
+            self.gsd_bn_source = nn.BatchNorm1d( n_gsd//2)
+            self.gsd_bn_target = nn.BatchNorm1d( n_gsd//2)
+            self.gsd_final_layer =  nn.Linear( n_gsd//2, 2)
             
             
         
@@ -98,29 +98,20 @@ class Classifier(nn.Module):
             self.gtd.add_module('gtd_relu1',   nn.LeakyReLU(0.1))
             self.gtd.add_module('gtd_drop1',   nn.Dropout())
             self.gtd.add_module('gtd_fc2',     nn.Linear(n_gtd, n_gtd//2))
-            #self.gtd.add_module('gtd_bn2',     nn.BatchNorm1d(n_gtd//2))
             self.gtd.add_module('gtd_relu2',   nn.LeakyReLU(0.1))      
-            self.gtd.add_module('gtd_fc3',     nn.Linear(n_gtd//2, 2))
-            #Method 2
-            #self.gtd = nn.Sequential()
-            #self.gtd.add_module('gtd_fc1',     nn.Linear(n_gsf_out, n_gtd))
-            #self.gtd.add_module('gtd_bn1',     nn.BatchNorm1d(n_gtd))
-            #self.gtd.add_module('gtd_relu1',   nn.LeakyReLU(0.1))
-            #self.gtd.add_module('gtd_drop1',   nn.Dropout())
-            #self.gtd.add_module('gtd_fc2',     nn.Linear(n_gtd, 2))  
-        
+
+            self.gtd_bn_source = nn.BatchNorm1d(n_gtd//2)
+            self.gtd_bn_target = nn.BatchNorm1d(n_gtd//2)
+
+            self.gtd_final_layer = nn.Linear(n_gtd//2,2)
         #Gy
         #1
         self.gy = nn.Sequential()
-        #self.gy.add_module('c_fc1', nn.Linear(n_gsf_out,n_gsf_out//2))
-        #self.gy.add_module('gy_bn1', nn.BatchNorm1d(n_gsf_out//2))
-        #self.gy.add_module('gy_relu1', nn.LeakyReLU(0.1))
-        #self.gy.add_module('gy_fc2', nn.Linear(n_gsf_out//2, num_class))
        #2
         self.gy.add_module('gy_fc1', nn.Linear(n_gsf_out, num_class))
 
 
-    def forward(self, x,alpha = 1):
+    def forward(self, x,alpha = 1,domain="source"):
         
         spatial_domain_out = None
         temporal_domain_out = None
@@ -128,17 +119,24 @@ class Classifier(nn.Module):
         class_out = None
         #GSF 
         # method 1
+        gsf_out_pre = torch.zeros(x.shape[0], self.n_feat[0], self.n_gsf_out).to(self.device)
         gsf_out = torch.zeros(x.shape[0], self.n_feat[0], self.n_gsf_out).to(self.device)
         for i in range(self.n_feat[0]):
-            gsf_out[:,i,:] = self.gsf_vec[i](x[:,i,:])
-        
-        #method 2
-        #gsf_out = self.gsf(x)
+            gsf_out_pre[:,i,:] = self.gsf_vec[i](x[:,i,:])+0
+            if(domain == "source"):
+                gsf_out[:,i,:] = self.gsf_bn_source[i](gsf_out_pre[:,i,:]+0)+0
+            elif(domain == "target"):
+                gsf_out[:,i,:] = self.gsf_bn_target[i](gsf_out_pre[:,i,:]+0)+0
     
         #spatial domain out
         if(self.ablation_mask["gsd"]):
             reverse_features = ReverseLayerF.apply(gsf_out,alpha)
-            spatial_domain_out = self.gsd(reverse_features.view(-1,5*self.n_gsf_out))
+            spatial_domain_out_pre = self.gsd(reverse_features.view(-1,5*self.n_gsf_out))
+            if(domain=="source"):
+                spatial_domain_out_bn = self.gsd_bn_source(spatial_domain_out_pre)
+            elif(domain=="target"):
+                spatial_domain_out_bn = self.gsd_bn_target(spatial_domain_out_pre)
+            spatial_domain_out = self.gsd_final_layer(spatial_domain_out_bn)
         #temporal aggregation 
         if(self.temporal_type == "TRN"):
             TRN_out = self.trn(gsf_out)
@@ -172,7 +170,12 @@ class Classifier(nn.Module):
             temporal_aggregation =self.AvgPool(gsf_out.unsqueeze(1)).squeeze()
         #temporal domain
         if(self.ablation_mask["gtd"]):
-            temporal_domain_out =  self.gtd(ReverseLayerF.apply(temporal_aggregation,alpha))
+            temporal_domain_out_pre =  self.gtd(ReverseLayerF.apply(temporal_aggregation,alpha))
+            if(domain=="source"):
+                tempora_domain_out_bn = self.gtd_bn_source(temporal_domain_out_pre)
+            elif(domain=="target"):
+                temporal_domain_out_bn = self.gtd_bn_target(temporal_domain_out_pre)
+            temporal_domain_out = self.gtd_final_layer(temporal_domain_out_bn)
         
         class_out = self.gy(temporal_aggregation)
 
