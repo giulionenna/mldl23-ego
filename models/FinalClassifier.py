@@ -33,11 +33,11 @@ class Classifier(nn.Module):
         for i in range(self.n_feat[0]):
             gsf = nn.Sequential()
             gsf.add_module('gsf_fc1', nn.Linear(self.n_feat[1], n_gsf_out))
-            gsf.add_module('gsf_bn1', nn.BatchNorm1d(n_gsf_out))
+            #gsf.add_module('gsf_bn1', nn.BatchNorm1d(n_gsf_out))
             gsf.add_module('gsf_relu1', nn.LeakyReLU(0.1))
             gsf.add_module('gsf_drop1', nn.Dropout())
             gsf.add_module('gsf_fc2', nn.Linear(n_gsf_out, n_gsf_out))
-            gsf.add_module('gsf_bn2', nn.BatchNorm1d(n_gsf_out))
+            #gsf.add_module('gsf_bn2', nn.BatchNorm1d(n_gsf_out))
             gsf.add_module('gsf_relu2', nn.LeakyReLU(0.1))
            
             self.gsf_vec += [gsf]
@@ -54,20 +54,16 @@ class Classifier(nn.Module):
         #Spatial Domain Discriminator
         if(ablation_mask["gsd"]):
             n_gsd = 256;
-            #self.gsd = nn.Sequential()
-            #self.gsd.add_module('gsd_fc1', nn.Linear(n_gsf_out*n_features[0], n_gsd))
+            self.gsd = nn.Sequential()
+            self.gsd.add_module('gsd_fc1', nn.Linear(n_gsf_out*n_features[0], n_gsd))
             #self.gsd.add_module('gsd_bn1', nn.BatchNorm1d(n_gsd))
-            #self.gsd.add_module('gsd_relu1', nn.LeakyReLU(0.1))
-            #self.gsd.add_module('gsd_drop1', nn.Dropout())
-            #self.gsd.add_module('gsd_fc2', nn.Linear(n_gsd, n_gsd//2))
+            self.gsd.add_module('gsd_relu1', nn.LeakyReLU(0.1))
+            self.gsd.add_module('gsd_drop1', nn.Dropout())
+            self.gsd.add_module('gsd_fc2', nn.Linear(n_gsd, n_gsd//2))
             #self.gsd.add_module('gsd_bn2', nn.BatchNorm1d( n_gsd//2))
-            #self.gsd.add_module('gsd_relu2', nn.LeakyReLU(0.1))      
-            #self.gsd.add_module('gsd_fc3', nn.Linear( n_gsd//2, 2))
-            #Method 2 Chinese
-            self.gsd.add_module('gsd_fc2', nn.Linear(n_gsf_out*n_features[0], n_gsd))
-            self.gsd.add_module('gsd_bn2', nn.BatchNorm1d( n_gsd))
             self.gsd.add_module('gsd_relu2', nn.LeakyReLU(0.1))      
-            self.gsd.add_module('gsd_fc3', nn.Linear( n_gsd, 2))
+            self.gsd.add_module('gsd_fc3', nn.Linear( n_gsd//2, 2))
+            
             
         
         #Temporal Pooling
@@ -80,11 +76,11 @@ class Classifier(nn.Module):
                 for i in range(self.n_feat[0]-1):
                     grd = nn.Sequential(
                         nn.Linear(n_gsf_out,n_grd_out),
-                        nn.BatchNorm1d(n_grd_out),
+                        #nn.BatchNorm1d(n_grd_out),
                         nn.ReLU(True),
                         nn.Dropout(),
                         nn.Linear(n_grd_out, n_grd_out//2),
-                        nn.BatchNorm1d(n_grd_out//2),
+                        #nn.BatchNorm1d(n_grd_out//2),
                         nn.ReLU(True) ,
                         nn.Linear(n_grd_out//2, 2),
                         
@@ -98,11 +94,11 @@ class Classifier(nn.Module):
             #Method 1
             self.gtd = nn.Sequential()
             self.gtd.add_module('gtd_fc1',     nn.Linear(n_gsf_out, n_gtd))
-            self.gtd.add_module('gtd_bn1',     nn.BatchNorm1d(n_gtd))
+            #self.gtd.add_module('gtd_bn1',     nn.BatchNorm1d(n_gtd))
             self.gtd.add_module('gtd_relu1',   nn.LeakyReLU(0.1))
             self.gtd.add_module('gtd_drop1',   nn.Dropout())
             self.gtd.add_module('gtd_fc2',     nn.Linear(n_gtd, n_gtd//2))
-            self.gtd.add_module('gtd_bn2',     nn.BatchNorm1d(n_gtd//2))
+            #self.gtd.add_module('gtd_bn2',     nn.BatchNorm1d(n_gtd//2))
             self.gtd.add_module('gtd_relu2',   nn.LeakyReLU(0.1))      
             self.gtd.add_module('gtd_fc3',     nn.Linear(n_gtd//2, 2))
             #Method 2
@@ -169,10 +165,9 @@ class Classifier(nn.Module):
                     #temporal_aggregation = temporal_aggregation.squeeze(2)
 
                 else:
-                    temporal_aggregation = nn.AvgPool2d(TRN_out.unsqueeze(1)).squeeze()
+                    temporal_aggregation = (nn.AvgPool2d([4,1])(TRN_out.unsqueeze(1))).squeeze()
             else:
-                #temporal_aggregation = self.AvgPool(TRN_out).reshape(TRN_out.shape[0],TRN_out.shape[2])
-                temporal_aggregation = torch.sum(TRN_out,dim=1)
+                temporal_aggregation = (nn.AvgPool2d([4,1])(TRN_out.unsqueeze(1))).squeeze()
         else:
             temporal_aggregation =self.AvgPool(gsf_out.unsqueeze(1)).squeeze()
         #temporal domain

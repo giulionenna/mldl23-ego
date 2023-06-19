@@ -24,13 +24,13 @@ def main():
              'D3-D1',
              'D3-D2']
 
-    vec = [4,5]
+    vec = [5]
     for i in vec:
         final_table = pd.DataFrame(columns=col)
         ablation_entry = ablation_list[i]
         temporal_type = ablation_entry['temporal_type']
         ablation = ablation_entry['ablation']
-        weights = {'gamma': 0.3, 'l_s': 0.5, 'l_r': 1, 'l_t': 0.5}
+        weights = {'gamma': 0.3, 'l_s': 0.75, 'l_r': 0.5, 'l_t': 0.75}
         domains = ['D1', 'D2','D3']
         score = {}
         best_acc = {}
@@ -61,7 +61,7 @@ def main():
                     'D3-D1': best_acc['D3-D1'],
                     'D3-D2': best_acc['D3-D2']}
         final_table = final_table.append(new_row, ignore_index=True)
-        run_name = "ta3n_v6"    
+        run_name = "ta3n_noBatch"    
         table_name =  "table_results/"+run_name+"_"+temporal_type+'_gsd_'+ str(ablation_entry['ablation']['gsd'])+ \
                                     '_gtd_'+str(ablation_entry['ablation']['gtd'])+'_grd_'\
                                      +str(ablation_entry['ablation']['grd'])+'domainA'+str(ablation_entry['ablation']['domainA']) \
