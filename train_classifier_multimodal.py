@@ -157,7 +157,7 @@ def main_train(temporal_type = None, ablation = None, loss_weights = None, shift
                             +args.models.RGB["temporal-type"]+"_gsd_"+str(args.models.RGB.ablation["gsd"])+"_gtd_"+str(args.models.RGB.ablation["gtd"]) \
                             +"_grd_"+str(args.models.RGB.ablation["grd"])+"_lr_"+str(args.models.RGB.lr)+"_sgdMom_"+str(args.models.RGB.sgd_momentum)+ \
                                 "_weightDecay_"+str(args.models.RGB.weight_decay) +".pt"
-        torch.save(loss_train, loss_file_name)
+        #torch.save(loss_train, loss_file_name)
         
         score = {'best': best_score, 'last': last_score}
         wandb.finish()
@@ -259,9 +259,9 @@ def train(action_classifier, train_loader, target_loader,val_loader, device, num
 
        
         #forward on source
-        logits_s = action_classifier.forward(data_s)
+        logits_s = action_classifier.forward(data_s,domain="source")
         #forward on target
-        logits_t = action_classifier.forward(data_t)
+        logits_t = action_classifier.forward(data_t,domain="target")
         #compute loss on source
         action_classifier.compute_loss(logits_s,logits_t, source_label, source_label_domain,target_label_domain, loss_weight=1)
         #backward based on updated losses
@@ -307,7 +307,7 @@ def train(action_classifier, train_loader, target_loader,val_loader, device, num
             action_classifier.save_model(real_iter, val_metrics['top1'], prefix=None)
             action_classifier.train(True)
 
-    return loss_train, action_classifier.best_iter_score, last_acc
+    return loss_train.detach(), action_classifier.best_iter_score, last_acc
 
 def validate(model, val_loader, device, it, num_classes):
     """
@@ -328,7 +328,7 @@ def validate(model, val_loader, device, it, num_classes):
     with torch.no_grad():
         for i_val, (data, label) in enumerate(val_loader):
             label = label.to(device)
-            logits = model(data)
+            logits = model(data,domain = "target")
             model.compute_accuracy(logits, label)
 
             if (i_val + 1) % (len(val_loader) // 5) == 0:

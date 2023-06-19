@@ -34,9 +34,9 @@ class Classifier(nn.Module):
             gsf = nn.Sequential()
             gsf.add_module('gsf_fc1', nn.Linear(self.n_feat[1], n_gsf_out))
             gsf.add_module('gsf_relu1', nn.LeakyReLU(0.1))
-            gsf.add_module('gsf_drop1', nn.Dropout())
-            gsf.add_module('gsf_fc2', nn.Linear(n_gsf_out, n_gsf_out))
-            gsf.add_module('gsf_relu2', nn.LeakyReLU(0.1))
+            #gsf.add_module('gsf_drop1', nn.Dropout())
+            #gsf.add_module('gsf_fc2', nn.Linear(n_gsf_out, n_gsf_out))
+            #gsf.add_module('gsf_relu2', nn.LeakyReLU(0.1))
            
             self.gsf_vec += [gsf]
         self.gsf_bn_source = nn.ModuleList()
@@ -56,13 +56,14 @@ class Classifier(nn.Module):
             self.gsd.add_module('gsd_fc1', nn.Linear(n_gsf_out*n_features[0], n_gsd))
             #self.gsd.add_module('gsd_bn1', nn.BatchNorm1d(n_gsd))
             self.gsd.add_module('gsd_relu1', nn.LeakyReLU(0.1))
-            self.gsd.add_module('gsd_drop1', nn.Dropout())
-            self.gsd.add_module('gsd_fc2', nn.Linear(n_gsd, n_gsd//2))
+            #self.gsd.add_module('gsd_drop1', nn.Dropout())
+            #self.gsd.add_module('gsd_fc2', nn.Linear(n_gsd, n_gsd//2))
             #self.gsd.add_module('gsd_bn2', nn.BatchNorm1d( n_gsd//2))
-            self.gsd.add_module('gsd_relu2', nn.LeakyReLU(0.1))      
-            self.gsd_bn_source = nn.BatchNorm1d( n_gsd//2)
-            self.gsd_bn_target = nn.BatchNorm1d( n_gsd//2)
-            self.gsd_final_layer =  nn.Linear( n_gsd//2, 2)
+            #self.gsd.add_module('gsd_relu2', nn.LeakyReLU(0.1))      
+            
+            self.gsd_bn_source = nn.BatchNorm1d( n_gsd)
+            self.gsd_bn_target = nn.BatchNorm1d( n_gsd)
+            self.gsd_final_layer =  nn.Linear( n_gsd, 2)
             
             
         
@@ -71,6 +72,7 @@ class Classifier(nn.Module):
             self.trn = nn.Sequential()
             self.trn.add_module('trn', RelationModuleMultiScale(img_feature_dim=n_gsf_out, num_bottleneck=n_gsf_out, num_frames=n_features[0]))
             n_grd_out = 256
+            self.n_grd_out = n_grd_out
             if(ablation_mask["grd"]):
                 self.grd_all = nn.ModuleList()
                 for i in range(self.n_feat[0]-1):
@@ -78,16 +80,27 @@ class Classifier(nn.Module):
                         nn.Linear(n_gsf_out,n_grd_out),
                         #nn.BatchNorm1d(n_grd_out),
                         nn.ReLU(True),
-                        nn.Dropout(),
-                        nn.Linear(n_grd_out, n_grd_out//2),
+                        #nn.Dropout()
+                        #nn.Linear(n_grd_out, n_grd_out//2),
                         #nn.BatchNorm1d(n_grd_out//2),
-                        nn.ReLU(True) ,
-                        nn.Linear(n_grd_out//2, 2),
+                        #nn.ReLU(True) ,
+                        #nn.Linear(n_grd_out//2, 2),
                         
                         )
                     self.grd_all += [grd]
-        
-        self.AvgPool = nn.AvgPool2d([self.n_feat[0],1])
+                self.grd_bn_source = nn.ModuleList()
+                self.grd_bn_target = nn.ModuleList()
+                self.grd_final_layer = nn.ModuleList()
+                for i in range(self.n_feat[0]-1):
+                    bn_s = nn.BatchNorm1d(n_grd_out)
+                    bn_t = nn.BatchNorm1d(n_grd_out)
+                    fc_grd = nn.Linear(n_grd_out, 2)
+                    self.grd_bn_source +=[bn_s]
+                    self.grd_bn_target +=[bn_t]
+                    self.grd_final_layer += [fc_grd]
+
+
+        self.AvgPool = nn.AvgPool2d([5,1])       
         #Temporal Domain discriminator
         if(ablation_mask["gtd"]):
             n_gtd = 512
@@ -96,14 +109,14 @@ class Classifier(nn.Module):
             self.gtd.add_module('gtd_fc1',     nn.Linear(n_gsf_out, n_gtd))
             #self.gtd.add_module('gtd_bn1',     nn.BatchNorm1d(n_gtd))
             self.gtd.add_module('gtd_relu1',   nn.LeakyReLU(0.1))
-            self.gtd.add_module('gtd_drop1',   nn.Dropout())
-            self.gtd.add_module('gtd_fc2',     nn.Linear(n_gtd, n_gtd//2))
-            self.gtd.add_module('gtd_relu2',   nn.LeakyReLU(0.1))      
+            #self.gtd.add_module('gtd_drop1',   nn.Dropout())
+            #self.gtd.add_module('gtd_fc2',     nn.Linear(n_gtd, n_gtd//2))
+            #self.gtd.add_module('gtd_relu2',   nn.LeakyReLU(0.1))      
 
-            self.gtd_bn_source = nn.BatchNorm1d(n_gtd//2)
-            self.gtd_bn_target = nn.BatchNorm1d(n_gtd//2)
+            self.gtd_bn_source = nn.BatchNorm1d(n_gtd)
+            self.gtd_bn_target = nn.BatchNorm1d(n_gtd)
 
-            self.gtd_final_layer = nn.Linear(n_gtd//2,2)
+            self.gtd_final_layer = nn.Linear(n_gtd,2)
         #Gy
         #1
         self.gy = nn.Sequential()
@@ -141,11 +154,18 @@ class Classifier(nn.Module):
         if(self.temporal_type == "TRN"):
             TRN_out = self.trn(gsf_out)
             if(self.ablation_mask["grd"]):
+                grd_outs_pre = torch.zeros([gsf_out.shape[0],self.n_feat[0]-1,self.n_grd_out]).to(self.device)
+                grd_outs_bn = torch.zeros([gsf_out.shape[0],self.n_feat[0]-1,self.n_grd_out]).to(self.device)
                 grd_outs = torch.zeros([gsf_out.shape[0],self.n_feat[0]-1,2]).to(self.device)
 
                 for i in range(0,self.n_feat[0]-1):
-                    grd_outs[:,i,:] = self.grd_all[i](ReverseLayerF.apply(TRN_out[:,i,:],alpha))
-                
+                    grd_outs_pre[:,i,:] = self.grd_all[i](ReverseLayerF.apply(TRN_out[:,i,:],alpha))+0
+                    if(domain=="source"):
+                        grd_outs_bn[:,i,:] = self.grd_bn_source[i](grd_outs_pre[:,i,:]+0)+0
+                    elif(domain=="target"):
+                        grd_outs_bn[:,i,:] = self.grd_bn_target[i](grd_outs_pre[:,i,:]+0)+0
+                    grd_outs[:,i,:] = self.grd_final_layer[i](grd_outs_bn[:,i,:]+0)+0
+
                 if(self.ablation_mask["domainA"]):
                 #Calcolo Entropia e Attention Weights
 
@@ -172,7 +192,7 @@ class Classifier(nn.Module):
         if(self.ablation_mask["gtd"]):
             temporal_domain_out_pre =  self.gtd(ReverseLayerF.apply(temporal_aggregation,alpha))
             if(domain=="source"):
-                tempora_domain_out_bn = self.gtd_bn_source(temporal_domain_out_pre)
+                temporal_domain_out_bn = self.gtd_bn_source(temporal_domain_out_pre)
             elif(domain=="target"):
                 temporal_domain_out_bn = self.gtd_bn_target(temporal_domain_out_pre)
             temporal_domain_out = self.gtd_final_layer(temporal_domain_out_bn)

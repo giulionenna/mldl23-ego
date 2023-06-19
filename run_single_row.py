@@ -24,7 +24,7 @@ def main():
              'D3-D1',
              'D3-D2']
 
-    vec = [5]
+    vec = [4,5,6,7]
     for i in vec:
         final_table = pd.DataFrame(columns=col)
         ablation_entry = ablation_list[i]
@@ -61,7 +61,7 @@ def main():
                     'D3-D1': best_acc['D3-D1'],
                     'D3-D2': best_acc['D3-D2']}
         final_table = final_table.append(new_row, ignore_index=True)
-        run_name = "ta3n_noBatch"    
+        run_name = "ta3n_SimplifiedDomains"    
         table_name =  "table_results/"+run_name+"_"+temporal_type+'_gsd_'+ str(ablation_entry['ablation']['gsd'])+ \
                                     '_gtd_'+str(ablation_entry['ablation']['gtd'])+'_grd_'\
                                      +str(ablation_entry['ablation']['grd'])+'domainA'+str(ablation_entry['ablation']['domainA']) \
