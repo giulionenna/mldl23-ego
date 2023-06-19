@@ -99,7 +99,7 @@ class MultiModal_task(tasks.Task, ABC):
                                                 weight_decay=model_args[m].weight_decay,
                                                 momentum=model_args[m].sgd_momentum)
 
-    def forward(self, data: Dict[str, torch.Tensor], domain="source") -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
+    def forward(self, data_s: Dict[str, torch.Tensor], data_t: Dict[str, torch.Tensor], beta, mu, is_train, reverse) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
         """Forward step of the task
 
         Parameters
@@ -123,7 +123,7 @@ class MultiModal_task(tasks.Task, ABC):
 
         features = {}
         for i_m, m in enumerate(self.modalities):
-            logits["sd"][m],logits["td"][m],logits["class"][m],logits["rd"][m]= self.task_models[m](x=data[m], domain=domain)
+            logits["sd"][m],logits["td"][m],logits["class"][m],logits["rd"][m]= self.task_models[m](data_s[m],data_t[m],beta,mu,is_train,reverse)
 
         return logits
 

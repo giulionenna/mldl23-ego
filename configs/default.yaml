@@ -29,8 +29,8 @@ test:
 dataset:
   annotations_path: train_val # path for the annotations data
   shift: D1-D2 # shifts of the dataset
-  workers: 4 # number of workers for the dataloader 
-  persistentWorkers: True
+  workers: 0 # number of workers for the dataloader 
+  persistentWorkers: False
   stride: 2 # stride in case of dense sampling
   resolution: 224 # input resolution to the model
   RGB:
@@ -59,45 +59,10 @@ models:
     l_t: 0.5
     sgd_momentum: 0.9
     weight_decay: 1e-7
-    temporal-type: TRN
-    ablation: 
-      gsd: True
-      gtd: True
-      grd: True
-      domainA: False
-  audio:
-    model: Classifier
-    normalize: False
-    kwargs: {}
-    lr_steps: 1500
-    lr: 0.03
-    gamma: 0.05
-    l_s: 0.75
-    l_r: 0.75
-    l_t: 0.75
-    sgd_momentum: 0.9
-    weight_decay: 1e-7
-    temporal-type: TRN
+    temporal-type: avgpool #or 'trn' or 'avgpool'
     ablation: 
       gsd: True
       gtd: True
       grd: True
       domainA: True
-  mid_fusion:
-    model: Classifier
-    normalize: False
-    kwargs: {}
-    lr_steps: 1500
-    lr: 0.03
-    gamma: 0
-    l_s: 0.5
-    l_r: 0.75
-    l_t: 0.5
-    sgd_momentum: 0.9
-    weight_decay: 1e-7
-    temporal-type: TRN
-    ablation: 
-      gsd: True
-      gtd: True
-      grd: True
-      domainA: False
+  

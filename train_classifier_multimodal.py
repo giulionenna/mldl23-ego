@@ -91,17 +91,19 @@ def main_train(temporal_type = None, ablation = None, loss_weights = None, shift
     # recover valid paths, domains, classes
     # this will output the domain conversion (D1 -> 8, et cetera) and the label list
     num_classes, valid_labels, source_domain, target_domain = utils.utils.get_domains_and_labels(args)
+    
     # device where everything is run
-    #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if(args.gpus == "mps"):
         device = torch.device("mps:0" if torch.backends.mps.is_available() else "cpu")
     elif(args.gpus == "cuda"):
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     else: 
         device = torch.device("cpu")
+    
     # these dictionaries are for more multi-modal training/testing, each key is a modality used
     models = {}
     logger.info("Instantiating models per modality")
+    baseline_type = 'frame' #oppure 'video' oppure 'tsn'
     for m in modalities:
         logger.info('{} Net\tModality: {}'.format(args.models[m].model, m))
         # notice that here, the first parameter passed is the input dimension
@@ -110,8 +112,16 @@ def main_train(temporal_type = None, ablation = None, loss_weights = None, shift
             temporal_type = args.models[m]['temporal-type']
         if ablation is None:
             ablation = args.models[m]['ablation']
-        models[m] = getattr(model_list, args.models[m].model)(num_classes,[5,1024], temporal_type , ablation ,device)
-
+        #models[m] = getattr(model_list, args.models[m].model)(num_classes,[5,1024], temporal_type , ablation ,device)
+        models[m] = getattr(model_list, args.models[m].model)(num_classes, baseline_type, temporal_type, m,
+				train_segments=5, val_segments=25,
+				base_model='resnet101', path_pretrained='', new_length=None,
+				before_softmax=True,
+				dropout_i=0.5, dropout_v=0.5, use_bn='none', ens_DA='none',
+				crop_num=1, partial_bn=True, verbose=True, add_fc=1, fc_dim=1024,
+				n_rnn=1, rnn_cell='LSTM', n_directions=1, n_ts=5,
+				use_attn='TransAttn', n_attn=1, use_attn_frame='none',
+				share_params='Y')
     # the models are wrapped into the ActionRecognition task which manages all the training steps
     action_classifier = tasks.MultiModal_task("action-classifier", models, args.batch_size,
                                                 args.total_batch, args.models_dir, num_classes,
@@ -152,13 +162,8 @@ def main_train(temporal_type = None, ablation = None, loss_weights = None, shift
                                                  batch_size=args.batch_size, shuffle=False,
                                                  num_workers=args.dataset.workers, pin_memory=True, drop_last=False,persistent_workers=args.dataset.persistentWorkers)
         loss_train, best_score, last_score = train(action_classifier, train_loader,target_loader, val_loader, device, num_classes)
-        #                 loss_train_D1_to_D2_TRN/base_gsd1/0_gtd0/1_grd0/1_lr_sgdMomval_weightDecay
-        loss_file_name = "train_images/loss_train_"+args.dataset.shift.split("-")[0]+"_to_"+args.dataset.shift.split("-")[-1]+"_" \
-                            +args.models.RGB["temporal-type"]+"_gsd_"+str(args.models.RGB.ablation["gsd"])+"_gtd_"+str(args.models.RGB.ablation["gtd"]) \
-                            +"_grd_"+str(args.models.RGB.ablation["grd"])+"_lr_"+str(args.models.RGB.lr)+"_sgdMom_"+str(args.models.RGB.sgd_momentum)+ \
-                                "_weightDecay_"+str(args.models.RGB.weight_decay) +".pt"
-        #torch.save(loss_train, loss_file_name)
-        
+    
+            
         score = {'best': best_score, 'last': last_score}
         wandb.finish()
         return loss_train, score
@@ -258,10 +263,8 @@ def train(action_classifier, train_loader, target_loader,val_loader, device, num
         
 
        
-        #forward on source
-        logits_s = action_classifier.forward(data_s,domain="source")
-        #forward on target
-        logits_t = action_classifier.forward(data_t,domain="target")
+        #forward 
+        logits_s = action_classifier.forward(data_s,data_t,beta=1,mu=1,is_train=True,reverse=True)
         #compute loss on source
         action_classifier.compute_loss(logits_s,logits_t, source_label, source_label_domain,target_label_domain, loss_weight=1)
         #backward based on updated losses
