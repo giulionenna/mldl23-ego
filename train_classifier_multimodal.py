@@ -281,10 +281,10 @@ def train(action_classifier, train_loader, target_loader,val_loader, device, num
             #wandb
             if args.wandb_name is not None:
                 wandb.log({"loss":  action_classifier.loss.val, 
-                        "loss_sd": torch.mean((action_classifier.loss_sd.val).clone().detach(),dtype=float),
-                        "loss_td": torch.mean((action_classifier.loss_td.val).clone().detach(),dtype=float),
-                        "loss_rd": torch.mean((action_classifier.loss_rd.val).clone().detach(),dtype=float),
-                        "loss_ae": torch.mean((action_classifier.loss_ae.val).clone().detach(),dtype=float)
+                        "loss_sd": torch.mean(torch.tensor(action_classifier.loss_sd.val,dtype=float)),
+                        "loss_td": torch.mean(torch.tensor(action_classifier.loss_td.val,dtype=float)),
+                        "loss_rd": torch.mean(torch.tensor(action_classifier.loss_rd.val,dtype=float)),
+                        "loss_ae": torch.mean(torch.tensor(action_classifier.loss_ae.val,dtype=float))
                         })
 
             action_classifier.check_grad()
