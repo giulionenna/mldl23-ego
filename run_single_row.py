@@ -3,18 +3,19 @@ from train_classifier_midFusion import main_train as midFusion_train
 import numpy as np
 import pandas as pd
 import torch
+import sys
 def main():
     np.random.seed(13696641)
     torch.manual_seed(13696641)
-    ablation_list = [{'temporal_type': 'avgpool', 'ablation':{'gsd': False, 'gtd': False, 'grd': False, 'domainA':'none'}},
-                     {'temporal_type': 'trn-m', 'ablation': {'gsd': False, 'gtd': False, 'grd': False, 'domainA':'none' }},
-                     {'temporal_type': 'avgpool', 'ablation': {'gsd': True, 'gtd': False, 'grd': False, 'domainA':'none' }},
-                     {'temporal_type': 'trn-m', 'ablation': {'gsd': True, 'gtd': False, 'grd': False, 'domainA':'none' }},
-                     {'temporal_type': 'avgpool', 'ablation': {'gsd': False, 'gtd': True, 'grd': False, 'domainA': 'none'}},
-                     {'temporal_type': 'trn-m', 'ablation': {'gsd': False, 'gtd': True, 'grd': False, 'domainA':'none'}},
-                     {'temporal_type': 'trn-m', 'ablation': {'gsd': False, 'gtd': False, 'grd': True, 'domainA':'none' }},
-                     {'temporal_type': 'trn-m', 'ablation': {'gsd': True, 'gtd': True, 'grd': True, 'domainA':'none'}},
-                     {'temporal_type': 'trn-m', 'ablation': {'gsd': True, 'gtd': True, 'grd': True, 'domainA': 'TransAttn'}}]  
+    ablation_list = [{'temporal_type': 'avgpool',   'ablation': {'gsd': False, 'gtd': False, 'grd': False, 'domainA':'none',     'frameA':'none'}},
+                     {'temporal_type': 'trn-m',     'ablation': {'gsd': False, 'gtd': False, 'grd': False, 'domainA':'none',     'frameA':'none' }},
+                     {'temporal_type': 'avgpool',   'ablation': {'gsd': True,  'gtd': False, 'grd': False, 'domainA':'none',     'frameA':'none' }},
+                     {'temporal_type': 'trn-m',     'ablation': {'gsd': True,  'gtd': False, 'grd': False, 'domainA':'none',     'frameA':'none' }},
+                     {'temporal_type': 'avgpool',   'ablation': {'gsd': False, 'gtd': True,  'grd': False, 'domainA':'none',     'frameA':'none'}},
+                     {'temporal_type': 'trn-m',     'ablation': {'gsd': False, 'gtd': True,  'grd': False, 'domainA':'none',     'frameA':'none'}},
+                     {'temporal_type': 'trn-m',     'ablation': {'gsd': False, 'gtd': False, 'grd': True,  'domainA':'none',     'frameA':'none' }},
+                     {'temporal_type': 'trn-m',     'ablation': {'gsd': True,  'gtd': True,  'grd': True,  'domainA':'none',     'frameA':'none'}},
+                     {'temporal_type': 'trn-m',     'ablation': {'gsd': True,  'gtd': True,  'grd': True,  'domainA':'TransAttn','frameA':'none'}}]  
     
     col = ['abl',
              'D1-D2', 
@@ -24,7 +25,10 @@ def main():
              'D3-D1',
              'D3-D2']
 
-    vec = [8]
+    if(len(sys.argv) < 2):
+        vec = [0,1,2]
+    else:
+        vec = [int(sys.argv[1])]
     for i in vec:
         final_table = pd.DataFrame(columns=col)
         ablation_entry = ablation_list[i]
@@ -61,7 +65,7 @@ def main():
                     'D3-D1': best_acc['D3-D1'],
                     'D3-D2': best_acc['D3-D2']}
         final_table = final_table.append(new_row, ignore_index=True)
-        run_name = "ta3n_SimplifiedDomains"    
+        run_name = "ta3n_Chung"    
         table_name =  "table_results/"+run_name+"_"+temporal_type+'_gsd_'+ str(ablation_entry['ablation']['gsd'])+ \
                                     '_gtd_'+str(ablation_entry['ablation']['gtd'])+'_grd_'\
                                      +str(ablation_entry['ablation']['grd'])+'domainA'+str(ablation_entry['ablation']['domainA']) \
