@@ -126,8 +126,8 @@ class Classifier(nn.Module):
 			model_test = C3D()
 			self.feature_dim = model_test.fc7.in_features
 		else:
-			model_test = getattr(torchvision.models, base_model)(True) # model_test is only used for getting the dim #
-			self.feature_dim = model_test.fc.in_features #TODO vedere che dimensioni hanno ste feature
+			#model_test = getattr(torchvision.models, base_model)(True) # model_test is only used for getting the dim #
+			self.feature_dim = 1024
 
 		std = 0.001
 		feat_shared_dim = min(self.fc_dim, self.feature_dim) if self.add_fc > 0 and self.fc_dim > 0 else self.feature_dim
