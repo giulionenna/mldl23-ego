@@ -117,10 +117,10 @@ def main_train(temporal_type = None, ablation = None, loss_weights = None, shift
 				train_segments=5, val_segments=25,
 				base_model='resnet101', path_pretrained='', new_length=None,
 				before_softmax=True,
-				dropout_i=0.5, dropout_v=0.5, use_bn='none', ens_DA='none',
+				dropout_i=0.5, dropout_v=0.5, use_bn=args.models[m]["use_bn"], ens_DA='none',
 				crop_num=1, partial_bn=True, verbose=True, add_fc=1, fc_dim=1024,
 				n_rnn=1, rnn_cell='LSTM', n_directions=1, n_ts=5,
-				use_attn='TransAttn', n_attn=1, use_attn_frame='none',
+				use_attn=ablation["domainA"], n_attn=1, use_attn_frame=ablation["frameA"],
 				share_params='Y')
     # the models are wrapped into the ActionRecognition task which manages all the training steps
     action_classifier = tasks.MultiModal_task("action-classifier", models, args.batch_size,
@@ -281,10 +281,10 @@ def train(action_classifier, train_loader, target_loader,val_loader, device, num
             #wandb
             if args.wandb_name is not None:
                 wandb.log({"loss":  action_classifier.loss.val, 
-                        "loss_sd": torch.mean(torch.tensor(action_classifier.loss_sd.val,dtype=float)),
-                        "loss_td": torch.mean(torch.tensor(action_classifier.loss_td.val,dtype=float)),
-                        "loss_rd": torch.mean(torch.tensor(action_classifier.loss_rd.val,dtype=float)),
-                        "loss_ae": torch.mean(torch.tensor(action_classifier.loss_ae.val,dtype=float))
+                        "loss_sd": torch.mean(torch.tensor(action_classifier.loss_sd.val,dtype=float,requires_grad=False)),
+                        "loss_td": torch.mean(torch.tensor(action_classifier.loss_td.val,dtype=float,requires_grad=False)),
+                        "loss_rd": torch.mean(torch.tensor(action_classifier.loss_rd.val,dtype=float,requires_grad=False)),
+                        "loss_ae": torch.mean(torch.tensor(action_classifier.loss_ae.val,dtype=float,requires_grad=False))
                         })
 
             action_classifier.check_grad()
@@ -310,7 +310,7 @@ def train(action_classifier, train_loader, target_loader,val_loader, device, num
             action_classifier.save_model(real_iter, val_metrics['top1'], prefix=None)
             action_classifier.train(True)
 
-    return loss_train.detach(), action_classifier.best_iter_score, last_acc
+    return loss_train.clone().detach(), action_classifier.best_iter_score, last_acc
 
 def validate(model, val_loader, device, it, num_classes):
     """

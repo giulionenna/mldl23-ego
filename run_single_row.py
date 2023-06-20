@@ -6,15 +6,15 @@ import torch
 def main():
     np.random.seed(13696641)
     torch.manual_seed(13696641)
-    ablation_list = [{'temporal_type': 'avgpool', 'ablation': {'gsd': False, 'gtd': False, 'grd': False, 'domainA': False}},
-                     {'temporal_type': 'trn-m', 'ablation': {'gsd': False, 'gtd': False, 'grd': False, 'domainA': False}},
-                     {'temporal_type': 'avgpool', 'ablation': {'gsd': True, 'gtd': False, 'grd': False, 'domainA': False}},
-                     {'temporal_type': 'trn-m', 'ablation': {'gsd': True, 'gtd': False, 'grd': False, 'domainA': False}},
-                     {'temporal_type': 'avgpool', 'ablation': {'gsd': False, 'gtd': True, 'grd': False, 'domainA': False}},
-                     {'temporal_type': 'trn-m', 'ablation': {'gsd': False, 'gtd': True, 'grd': False, 'domainA': False}},
-                     {'temporal_type': 'trn-m', 'ablation': {'gsd': False, 'gtd': False, 'grd': True, 'domainA': False}},
-                     {'temporal_type': 'trn-m', 'ablation': {'gsd': True, 'gtd': True, 'grd': True, 'domainA': False}},
-                     {'temporal_type': 'trn-m', 'ablation': {'gsd': True, 'gtd': True, 'grd': True, 'domainA': True}}]  
+    ablation_list = [{'temporal_type': 'avgpool', 'ablation':{'gsd': False, 'gtd': False, 'grd': False, 'domainA':'none'}},
+                     {'temporal_type': 'trn-m', 'ablation': {'gsd': False, 'gtd': False, 'grd': False, 'domainA':'none' }},
+                     {'temporal_type': 'avgpool', 'ablation': {'gsd': True, 'gtd': False, 'grd': False, 'domainA':'none' }},
+                     {'temporal_type': 'trn-m', 'ablation': {'gsd': True, 'gtd': False, 'grd': False, 'domainA':'none' }},
+                     {'temporal_type': 'avgpool', 'ablation': {'gsd': False, 'gtd': True, 'grd': False, 'domainA': 'none'}},
+                     {'temporal_type': 'trn-m', 'ablation': {'gsd': False, 'gtd': True, 'grd': False, 'domainA':'none'}},
+                     {'temporal_type': 'trn-m', 'ablation': {'gsd': False, 'gtd': False, 'grd': True, 'domainA':'none' }},
+                     {'temporal_type': 'trn-m', 'ablation': {'gsd': True, 'gtd': True, 'grd': True, 'domainA':'none'}},
+                     {'temporal_type': 'trn-m', 'ablation': {'gsd': True, 'gtd': True, 'grd': True, 'domainA': 'TransAttn'}}]  
     
     col = ['abl',
              'D1-D2', 
@@ -24,7 +24,7 @@ def main():
              'D3-D1',
              'D3-D2']
 
-    vec = [0,1]
+    vec = [8]
     for i in vec:
         final_table = pd.DataFrame(columns=col)
         ablation_entry = ablation_list[i]

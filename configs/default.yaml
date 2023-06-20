@@ -1,5 +1,5 @@
 action: train # train or test
-name: test # name of the experiment needed for the logs
+name: TA3N_chung # name of the experiment needed for the logs
 modality: ["RGB"] # modality used
 total_batch: 128 # total batch size if training is done with gradient accumulation
 batch_size: 32 # batch size for the forward
@@ -60,9 +60,11 @@ models:
     sgd_momentum: 0.9
     weight_decay: 1e-7
     temporal-type: trn-m #or 'trn-m' or 'avgpool'
+    use_bn: Yep #or any string or 'AutooDIAL'
     ablation: 
       gsd: True
       gtd: True
       grd: True
-      domainA: False
+      domainA: TransAttn  #domain attention general or TransAttn
+      frameA: none  #frame attention general or TransAttn
   
