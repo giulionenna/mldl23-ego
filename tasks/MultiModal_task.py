@@ -112,20 +112,21 @@ class MultiModal_task(tasks.Task, ABC):
         Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]
             output logits and features
         """
-        # logits_class = {}
-        # logits_td = {}
-        # logits_sd = {}
-        logits = {"class":{},
+        logits_source = {"class":{},
                   "td":{},
                   "sd":{},
                   "rd":{}}
-        ""
+        logits_target = {"class":{},
+                  "td":{},
+                  "sd":{},
+                  "rd":{}}
 
         features = {}
         for i_m, m in enumerate(self.modalities):
-            logits["sd"][m],logits["td"][m],logits["class"][m],logits["rd"][m]= self.task_models[m](data_s[m],data_t[m],beta,mu,is_train,reverse)
+            #attn_relation_source, output_source, output_source_2, pred_domain_all_source[::-1],               feat_all_source[::-1], 
+            _,logits_source["class"][m],_,[logits_source["rd"][m],logits_source["td"][m],logits_source["sd"][m]],_,_,logits_target["class"][m],_,[logits_target["rd"][m],logits_target["td"][m],logits_target["sd"][m]],_,= self.task_models[m](data_s[m],data_t[m],beta,mu,is_train,reverse)
 
-        return logits
+        return logits_source,logits_target
 
     def compute_loss(self,logits_source,logits_target,label_class_source,label_d_source,label_d_target,loss_weight=1):
         loss = 0
@@ -138,6 +139,7 @@ class MultiModal_task(tasks.Task, ABC):
 
         loss_sd =0
         if(self.ablation["gsd"]):
+            
             fused_logits_sd_source = reduce(lambda x, y: x + y, logits_source["sd"].values())
             fused_logits_sd_target = reduce(lambda x, y: x + y, logits_target["sd"].values())
             loss_sd += self.criterion_sd(fused_logits_sd_source, label_d_source) 
@@ -164,7 +166,7 @@ class MultiModal_task(tasks.Task, ABC):
             
             #Update loss           
             loss += 0.5*self.l_t*loss_td+0.5*self.gamma *self.loss_ae.val
-        if(self.temporal_type=="TRN" and self.ablation["grd"]):
+        if(self.temporal_type=="trn-m" and self.ablation["grd"]):
             loss_rd = self.compute_loss_rd(logits_source,logits_target,label_d_source,label_d_target)
             self.loss_rd.update(loss_rd)
 

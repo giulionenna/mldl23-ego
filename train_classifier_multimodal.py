@@ -103,7 +103,7 @@ def main_train(temporal_type = None, ablation = None, loss_weights = None, shift
     # these dictionaries are for more multi-modal training/testing, each key is a modality used
     models = {}
     logger.info("Instantiating models per modality")
-    baseline_type = 'frame' #oppure 'video' oppure 'tsn'
+    baseline_type = 'video' #oppure 'video' oppure 'tsn'
     for m in modalities:
         logger.info('{} Net\tModality: {}'.format(args.models[m].model, m))
         # notice that here, the first parameter passed is the input dimension
@@ -264,7 +264,7 @@ def train(action_classifier, train_loader, target_loader,val_loader, device, num
 
        
         #forward 
-        logits_s = action_classifier.forward(data_s,data_t,beta=[1, 1, 1],mu=0,is_train=True,reverse=True)
+        logits_s,logits_t = action_classifier.forward(data_s,data_t,beta=[1, 1, 1],mu=0,is_train=True,reverse=False)
         #compute loss on source
         action_classifier.compute_loss(logits_s,logits_t, source_label, source_label_domain,target_label_domain, loss_weight=1)
         #backward based on updated losses
@@ -281,10 +281,10 @@ def train(action_classifier, train_loader, target_loader,val_loader, device, num
             #wandb
             if args.wandb_name is not None:
                 wandb.log({"loss":  action_classifier.loss.val, 
-                        "loss_sd": torch.mean(torch.tensor(action_classifier.loss_sd.val,dtype=float)),
-                        "loss_td": torch.mean(torch.tensor(action_classifier.loss_td.val,dtype=float)),
-                        "loss_rd": torch.mean(torch.tensor(action_classifier.loss_rd.val,dtype=float)),
-                        "loss_ae": torch.mean(torch.tensor(action_classifier.loss_ae.val,dtype=float))
+                        "loss_sd": torch.mean((action_classifier.loss_sd.val).clone().detach(),dtype=float),
+                        "loss_td": torch.mean((action_classifier.loss_td.val).clone().detach(),dtype=float),
+                        "loss_rd": torch.mean((action_classifier.loss_rd.val).clone().detach(),dtype=float),
+                        "loss_ae": torch.mean((action_classifier.loss_ae.val).clone().detach(),dtype=float)
                         })
 
             action_classifier.check_grad()
@@ -331,8 +331,8 @@ def validate(model, val_loader, device, it, num_classes):
     with torch.no_grad():
         for i_val, (data, label) in enumerate(val_loader):
             label = label.to(device)
-            logits = model(data,domain = "target")
-            model.compute_accuracy(logits, label)
+            _,logits_t = model(data,data,beta=[1, 1, 1],mu=0,is_train=True,reverse=False)
+            model.compute_accuracy(logits_t, label)
 
             if (i_val + 1) % (len(val_loader) // 5) == 0:
                 logger.info("[{}/{}] top1= {:.3f}% top5 = {:.3f}%".format(i_val + 1, len(val_loader),

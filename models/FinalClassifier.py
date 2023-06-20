@@ -1,7 +1,7 @@
 from torch import nn
 from torch.autograd import Function
 import torch
-from modules.TRNmodule import RelationModuleMultiScale
+import modules.TRNmodule as TRNmodule
 from scipy.stats import entropy 
 from torch import nn
 
@@ -85,6 +85,7 @@ class Classifier(nn.Module):
 		self.add_fc = add_fc
 		self.fc_dim = fc_dim
 		self.share_params = share_params
+		self.num_class = num_class
 
 		# RNN
 		self.n_layers = n_rnn
@@ -293,7 +294,7 @@ class Classifier(nn.Module):
 			for i in range(self.train_segments-1):
 				relation_domain_classifier = nn.Sequential(
 					nn.Linear(feat_aggregated_dim, feat_video_dim),
-					nn.ReLU(),
+					nn.ReLU(inplace=True),
 					nn.Linear(feat_video_dim, 2)
 				)
 				self.relation_domain_classifier_all += [relation_domain_classifier]
@@ -611,8 +612,11 @@ class Classifier(nn.Module):
 		pred_fc_domain_frame_source = self.domain_classifier_frame(feat_fc_source, beta)
 		pred_fc_domain_frame_target = self.domain_classifier_frame(feat_fc_target, beta)
 
-		pred_domain_all_source.append(pred_fc_domain_frame_source.view((batch_source, num_segments) + pred_fc_domain_frame_source.size()[-1:]))
-		pred_domain_all_target.append(pred_fc_domain_frame_target.view((batch_target, num_segments) + pred_fc_domain_frame_target.size()[-1:]))
+		#TODO Check if it is corrct to take the average
+		pred_gsd_source = torch.mean(pred_fc_domain_frame_source.view((batch_source, num_segments) + pred_fc_domain_frame_source.size()[-1:]),dim=1)
+		pred_gsd_target = torch.mean(pred_fc_domain_frame_target.view((batch_target, num_segments) + pred_fc_domain_frame_target.size()[-1:]),dim=1)
+		pred_domain_all_source.append(pred_gsd_source)
+		pred_domain_all_target.append(pred_gsd_target)
 
 		if self.use_attn_frame != 'none': # attend the frame-level features only
 			feat_fc_source = self.get_attn_feat_frame(feat_fc_source, pred_fc_domain_frame_source)
@@ -724,7 +728,7 @@ class Classifier(nn.Module):
 			output_source_2 = self.final_output(pred_fc_source, pred_fc_video_source_2, num_segments)
 			output_target_2 = self.final_output(pred_fc_target, pred_fc_video_target_2, num_segments)
 
-		return attn_relation_source, output_source, output_source_2, pred_domain_all_source[::-1], feat_all_source[::-1], attn_relation_target, output_target, output_target_2, pred_domain_all_target[::-1], feat_all_target[::-1] # reverse the order of feature list due to some multi-gpu issues
+		return attn_relation_source, output_source.view((batch_source,self.num_class) ), output_source_2, pred_domain_all_source[::-1], feat_all_source[::-1], attn_relation_target, output_target, output_target_2, pred_domain_all_target[::-1], feat_all_target[::-1] # reverse the order of feature list due to some multi-gpu issues
 
 class Classifierbackup(nn.Module):
     def __init__(self, num_class, n_features,temporal_type,ablation_mask,device):
