@@ -24,13 +24,13 @@ def main():
              'D3-D1',
              'D3-D2']
 
-    vec = [5]
+    vec = [8]
     for i in vec:
         final_table = pd.DataFrame(columns=col)
         ablation_entry = ablation_list[i]
         temporal_type = ablation_entry['temporal_type']
         ablation = ablation_entry['ablation']
-        weights = {'gamma': 0.3, 'l_s': 0.75, 'l_r': 0.5, 'l_t': 0.75}
+        weights = {'gamma': 0.1, 'l_s': 0.5, 'l_r': 1, 'l_t': 0.75}
         domains = ['D1', 'D2','D3']
         score = {}
         best_acc = {}

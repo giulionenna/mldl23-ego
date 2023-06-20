@@ -6,7 +6,7 @@ def main():
     
     temporal_type = 'TRN'
     ablation = {'gsd': True, 'gtd': True, 'grd': True, 'domainA': True}
-    weights = {'gamma': 0, 'l_s': 0, 'l_r': 0, 'l_t': 0}
+    weights = {'gamma': 0, 'l_s': 0.5, 'l_r': 1, 'l_t': 0}
     shifts = ['D1', 'D2', 'D3']
     shift_vec = [['D1', 'D2'], 
                  ['D1', 'D3'],
@@ -22,8 +22,8 @@ def main():
     f.write(" \t\t NEW GRID SEARCH RUN \n")
     f.write(" #################################### \n\n")
 
-    l_grid = [0, 0.5, 0.75, 1]
-    for loss in ['l_s', 'l_r', 'l_t']:
+    l_grid = [0.5, 0.75, 1]
+    for loss in ['l_t']:
         best_acc = 0 
         for weight in l_grid:
             f.write('##### Testing '+ loss+ ' = '+str(weight)+ '\n')

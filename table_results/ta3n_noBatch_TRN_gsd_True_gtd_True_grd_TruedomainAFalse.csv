@@ -1,0 +1,3 @@
+,abl,D1-D2,D1-D3,D2-D1,D2-D3,D3-D1,D3-D2,type
+0,"{'temporal_type': 'TRN', 'ablation': {'gsd': True, 'gtd': True, 'grd': True, 'domainA': False}}",41.99999998982747,40.55441480006036,54.0229884005141,45.17453798767967,48.04597699834012,45.73333331298828,top1
+1,"{'temporal_type': 'TRN', 'ablation': {'gsd': True, 'gtd': True, 'grd': True, 'domainA': False}}",42.8,42.19712527233962,54.0229884005141,47.74127308494991,48.27586205581139,49.06666668701172,best
