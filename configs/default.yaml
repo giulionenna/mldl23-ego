@@ -111,3 +111,23 @@ models:
       grd: True
       domainA: none
       frameA: none
+  mid_fusion:
+    model: ClassifierMidFusion
+    normalize: False
+    kwargs: {}
+    lr_steps: 900
+    lr: 0.01
+    gamma: 0.1
+    l_s: 0.5
+    l_r: 0.75
+    l_t: 0.5
+    sgd_momentum: 0.9
+    weight_decay: 1e-7
+    temporal-type: trn-m
+    use_bn: 'yes'
+    ablation: 
+      gsd: True
+      gtd: True
+      grd: True
+      domainA: none
+      frameA: none

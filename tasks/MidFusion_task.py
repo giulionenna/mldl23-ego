@@ -98,7 +98,7 @@ class MidFusion_task(tasks.Task, ABC):
                                                 weight_decay=model_args[m].weight_decay,
                                                 momentum=model_args[m].sgd_momentum)
 
-    def forward(self, data: Dict[str, torch.Tensor], **kwargs) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
+    def forward(self, data_s: Dict[str, torch.Tensor],data_t,beta, mu, is_train, reverse, **kwargs) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
         """Forward step of the task
 
         Parameters
@@ -114,18 +114,31 @@ class MidFusion_task(tasks.Task, ABC):
         # logits_class = {}
         # logits_td = {}
         # logits_sd = {}
-        logits = {"class":{},
+        logits_source = {"class":{},
+                  "td":{},
+                  "sd":{},
+                  "rd":{}}
+        logits_target = {"class":{},
                   "td":{},
                   "sd":{},
                   "rd":{}}
         ""
-
         
+        m = self.args["modality"][0]
+        if(len(self.args["modality"])== 2):
+            m2 = self.args["modality"][1]
+            input_s = torch.cat((data_s[m],data_s[m2]),dim=1)
+            input_t = torch.cat((data_t[m],data_t[m2]),dim=1)
+        if(len(self.args["modality"])== 3):
+            m2 = self.args["modality"][1]
+            m3 = self.args["modality"][2]
+            input_s= torch.cat((data_s[m],data_s[m2],data_s[m3]),dim=1)
+            input_t = torch.cat((data_t[m],data_t[m2],data_t[m3]),dim=1)
         m = 'mid_fusion'
-        input = torch.cat((data['RGB'],data['audio']),dim=2)
-        logits["sd"][m],logits["td"][m],logits["class"][m],logits["rd"][m]= self.task_models[m](x=input, **kwargs)
+        
+        _,logits_source["class"][m],_,[logits_source["rd"][m],logits_source["td"][m],logits_source["sd"][m]],_,_,logits_target["class"][m],_,[logits_target["rd"][m],logits_target["td"][m],logits_target["sd"][m]],_,= self.task_models[m](input_s,input_t,beta,mu,is_train,reverse)
 
-        return logits
+        return logits_source,logits_target
 
     def compute_loss(self,logits_source,logits_target,label_class_source,label_d_source,label_d_target,loss_weight=1):
         loss = 0
