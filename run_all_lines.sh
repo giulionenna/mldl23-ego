@@ -2,7 +2,7 @@
 # Un semplice esempio di variabili
 
 
-for VARIABLE in 3 4 5 6
+for VARIABLE in 7 8 
 do
     echo Executing script n: $VARIABLE
     python3 run_single_row.py $VARIABLE

@@ -25,8 +25,8 @@ def main():
              'D3-D1',
              'D3-D2']
 
-    if(len(sys.argv) < 2):
-        vec = [0,1,2]
+    if(True):
+        vec = [8]
     else:
         vec = [int(sys.argv[1])]
     for i in vec:
