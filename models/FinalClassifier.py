@@ -162,17 +162,21 @@ class Classifier(nn.Module):
 		normal_(self.fc_feature_source.weight, 0, std)
 		constant_(self.fc_feature_source.bias, 0)
 
-		# 3. domain feature layers (frame-level)
-		self.fc_feature_domain = nn.Linear(feat_shared_dim, feat_frame_dim)
+		# 3. GSD domain feature layers (frame-level)
+		self.fc_feature_domain = nn.Linear(feat_shared_dim, feat_frame_dim//2)
 		normal_(self.fc_feature_domain.weight, 0, std)
 		constant_(self.fc_feature_domain.bias, 0)
+		
+		self.fc_feature_domain_1 = nn.Linear(feat_shared_dim//2, feat_frame_dim//4)
+		normal_(self.fc_feature_domain_1.weight, 0, std)
+		constant_(self.fc_feature_domain_1.bias, 0)
 
 		# 4. classifiers (frame-level)
 		self.fc_classifier_source = nn.Linear(feat_frame_dim, num_class)
 		normal_(self.fc_classifier_source.weight, 0, std)
 		constant_(self.fc_classifier_source.bias, 0)
 
-		self.fc_classifier_domain = nn.Linear(feat_frame_dim, 2)
+		self.fc_classifier_domain = nn.Linear(feat_frame_dim//4, 2)
 		normal_(self.fc_classifier_domain.weight, 0, std)
 		constant_(self.fc_classifier_domain.bias, 0)
 
@@ -269,10 +273,13 @@ class Classifier(nn.Module):
 		normal_(self.fc_feature_video_source_2.weight, 0, std)
 		constant_(self.fc_feature_video_source_2.bias, 0)
 
-		# 2. domain feature layers (video-level)
-		self.fc_feature_domain_video = nn.Linear(feat_aggregated_dim, feat_video_dim)
+		# 2. GTD domain feature layers (video-level) GTD
+		self.fc_feature_domain_video = nn.Linear(feat_aggregated_dim, feat_video_dim//2)
 		normal_(self.fc_feature_domain_video.weight, 0, std)
 		constant_(self.fc_feature_domain_video.bias, 0)
+		self.fc_feature_domain_video_1 = nn.Linear(feat_aggregated_dim//2, feat_video_dim//4)
+		normal_(self.fc_feature_domain_video_1.weight, 0, std)
+		constant_(self.fc_feature_domain_video_1.bias, 0)
 
 		# 3. classifiers (video-level)
 		self.fc_classifier_video_source = nn.Linear(feat_video_dim, num_class)
@@ -284,7 +291,7 @@ class Classifier(nn.Module):
 			normal_(self.fc_classifier_video_source_2.weight, 0, std)
 			constant_(self.fc_classifier_video_source_2.bias, 0)
 
-		self.fc_classifier_domain_video = nn.Linear(feat_video_dim, 2)
+		self.fc_classifier_domain_video = nn.Linear(feat_video_dim//4, 2)
 		normal_(self.fc_classifier_domain_video.weight, 0, std)
 		constant_(self.fc_classifier_domain_video.bias, 0)
 
@@ -295,7 +302,10 @@ class Classifier(nn.Module):
 				relation_domain_classifier = nn.Sequential(
 					nn.Linear(feat_aggregated_dim, feat_video_dim),
 					nn.LeakyReLU(0.1, inplace=True),
-					nn.Linear(feat_video_dim, 2)
+					nn.Dropout(p=self.dropout_rate_i),
+					nn.Linear(feat_aggregated_dim, feat_video_dim//2),
+					nn.LeakyReLU(0.1, inplace=True),
+					nn.Linear(feat_video_dim//2, 2)
 				)
 				self.relation_domain_classifier_all += [relation_domain_classifier]
 
@@ -463,6 +473,9 @@ class Classifier(nn.Module):
 		feat_fc_domain_frame = GradReverse.apply(feat, beta[2])
 		feat_fc_domain_frame = self.fc_feature_domain(feat_fc_domain_frame)
 		feat_fc_domain_frame = self.relu(feat_fc_domain_frame)
+		feat_fc_domain_frame = self.dropout_i(feat_fc_domain_frame)
+		feat_fc_domain_frame = self.fc_feature_domain_1(feat_fc_domain_frame)
+		feat_fc_domain_frame = self.relu(feat_fc_domain_frame)
 		pred_fc_domain_frame = self.fc_classifier_domain(feat_fc_domain_frame)
 
 		return pred_fc_domain_frame
@@ -470,6 +483,9 @@ class Classifier(nn.Module):
 	def domain_classifier_video(self, feat_video, beta):
 		feat_fc_domain_video = GradReverse.apply(feat_video, beta[1])
 		feat_fc_domain_video = self.fc_feature_domain_video(feat_fc_domain_video)
+		feat_fc_domain_video = self.relu(feat_fc_domain_video)
+		feat_fc_domain_video = self.dropout_i(feat_fc_domain_video)
+		feat_fc_domain_video = self.fc_feature_domain_video_1(feat_fc_domain_video)
 		feat_fc_domain_video = self.relu(feat_fc_domain_video)
 		pred_fc_domain_video = self.fc_classifier_domain_video(feat_fc_domain_video)
 
