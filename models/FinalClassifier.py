@@ -617,6 +617,8 @@ class Classifier(nn.Module):
 		pred_gsd_target = torch.mean(pred_fc_domain_frame_target.view((batch_target, num_segments) + pred_fc_domain_frame_target.size()[-1:]),dim=1)
 		pred_domain_all_source.append(pred_gsd_source)
 		pred_domain_all_target.append(pred_gsd_target)
+		#pred_domain_all_source.append(pred_fc_domain_frame_source)
+		#pred_domain_all_target.append(pred_fc_domain_frame_target)
 
 		if self.use_attn_frame != 'none': # attend the frame-level features only
 			feat_fc_source = self.get_attn_feat_frame(feat_fc_source, pred_fc_domain_frame_source)
