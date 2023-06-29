@@ -130,9 +130,12 @@ class MultiModal_task(tasks.Task, ABC):
         for i_m, m in enumerate(self.modalities):
             if(m=="RGB" and  self.args['audio_attention']):
                 #Audio Attention Mechanism
-                attention_module = AttentionModule([5,1024])
+                attention_module = AttentionModule([5,1024]) #TODO Replace with TranssformerEncoder
                 new_data = attention_module(data['audio'],data[m])
-                
+                # New COso....
+                encoder_layer = nn.TransformerEncoderLayer(d_model=512, nhead=8)
+                transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=6)
+
                 logits["sd"][m],logits["td"][m],logits["class"][m],logits["rd"][m]= self.task_models[m](x=new_data, **kwargs)
             else:  
                 logits["sd"][m],logits["td"][m],logits["class"][m],logits["rd"][m]= self.task_models[m](x=data[m], **kwargs)
