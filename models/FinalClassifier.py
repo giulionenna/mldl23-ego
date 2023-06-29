@@ -34,9 +34,9 @@ class Classifier(nn.Module):
             gsf = nn.Sequential()
             gsf.add_module('gsf_fc1', nn.Linear(self.n_feat[1], n_gsf_out))
             gsf.add_module('gsf_relu1', nn.LeakyReLU(0.1,inplace=True))
-            #gsf.add_module('gsf_drop1', nn.Dropout())
-            #gsf.add_module('gsf_fc2', nn.Linear(n_gsf_out, n_gsf_out))
-            #gsf.add_module('gsf_relu2', nn.LeakyReLU(0.1))
+            gsf.add_module('gsf_drop1', nn.Dropout())
+            gsf.add_module('gsf_fc2', nn.Linear(n_gsf_out, n_gsf_out))
+            gsf.add_module('gsf_relu2', nn.LeakyReLU(0.1))
            
             self.gsf_vec += [gsf]
         self.gsf_bn_source = nn.ModuleList()
@@ -51,15 +51,15 @@ class Classifier(nn.Module):
 
         #Spatial Domain Discriminator
         if(ablation_mask["gsd"]):
-            n_gsd = 256;
+            n_gsd = 512;
             self.gsd = nn.Sequential()
             self.gsd.add_module('gsd_fc1', nn.Linear(n_gsf_out*n_features[0], n_gsd))
             #self.gsd.add_module('gsd_bn1', nn.BatchNorm1d(n_gsd))
             self.gsd.add_module('gsd_relu1', nn.LeakyReLU(0.1,inplace=True))
-            #self.gsd.add_module('gsd_drop1', nn.Dropout())
-            #self.gsd.add_module('gsd_fc2', nn.Linear(n_gsd, n_gsd//2))
+            self.gsd.add_module('gsd_drop1', nn.Dropout())
+            self.gsd.add_module('gsd_fc2', nn.Linear(n_gsd, n_gsd//2))
             #self.gsd.add_module('gsd_bn2', nn.BatchNorm1d( n_gsd//2))
-            #self.gsd.add_module('gsd_relu2', nn.LeakyReLU(0.1))      
+            self.gsd.add_module('gsd_relu2', nn.LeakyReLU(0.1))      
             
             self.gsd_bn_source = nn.BatchNorm1d( n_gsd)
             self.gsd_bn_target = nn.BatchNorm1d( n_gsd)
@@ -80,8 +80,8 @@ class Classifier(nn.Module):
                         nn.Linear(n_gsf_out,n_grd_out),
                         #nn.BatchNorm1d(n_grd_out),
                         nn.LeakyReLU(0.1,inplace=True),
-                        #nn.Dropout()
-                        #nn.Linear(n_grd_out, n_grd_out//2),
+                        nn.Dropout(),
+                        nn.Linear(n_grd_out, n_grd_out//2),
                         #nn.BatchNorm1d(n_grd_out//2),
                         #nn.ReLU(True) ,
                         #nn.Linear(n_grd_out//2, 2),
@@ -110,8 +110,8 @@ class Classifier(nn.Module):
             #self.gtd.add_module('gtd_bn1',     nn.BatchNorm1d(n_gtd))
             self.gtd.add_module('gtd_relu1',   nn.LeakyReLU(0.1,inplace=True))
             #self.gtd.add_module('gtd_drop1',   nn.Dropout())
-            #self.gtd.add_module('gtd_fc2',     nn.Linear(n_gtd, n_gtd//2))
-            #self.gtd.add_module('gtd_relu2',   nn.LeakyReLU(0.1))      
+            self.gtd.add_module('gtd_fc2',     nn.Linear(n_gtd, n_gtd//2))
+            self.gtd.add_module('gtd_relu2',   nn.LeakyReLU(0.1))      
 
             self.gtd_bn_source = nn.BatchNorm1d(n_gtd)
             self.gtd_bn_target = nn.BatchNorm1d(n_gtd)
