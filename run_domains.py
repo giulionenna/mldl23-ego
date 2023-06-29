@@ -29,7 +29,7 @@ def main():
     for ablation_entry in ablation_list:   
         temporal_type = ablation_entry['temporal_type']
         ablation = ablation_entry['ablation']
-        weights = {'gamma': 0.3, 'l_s': 0.5, 'l_r': 1, 'l_t': 0.5}
+        weights = {'gamma': 0, 'l_s': 0.75, 'l_r': 0.5, 'l_t': 0.75}
         domains = ['D1', 'D2','D3']
         score = {}
         config={'config': [temporal_type, ablation, weights]}
