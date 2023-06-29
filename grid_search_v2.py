@@ -1,11 +1,12 @@
 from train_classifier_multimodal import main_train
 import torch
 import numpy as np
+from datetime import datetime
 
 def main():
     
-    temporal_type = 'TRN'
-    ablation = {'gsd': True, 'gtd': True, 'grd': True, 'domainA': False}
+    temporal_type = 'trn-m'
+    ablation = {'gsd': True, 'gtd': True, 'grd': True, 'domainA': 'none','frameA':'none'}
     weights = {'gamma': 0, 'l_s': 0, 'l_r': 0, 'l_t': 0}
     shifts = ['D1', 'D2', 'D3']
     shift_vec = [['D1', 'D2'], 
@@ -23,10 +24,11 @@ def main():
                  ]
 
     best_acc = 0
+    date = datetime.today().strftime('%Y-%m-%d %H:%M:%S')
 
     f = open('grid_results.txt', 'a')
     f.write("\n\n\n #################################### \n")
-    f.write(" \t\t NEW GRID SEARCH RUN \n")
+    f.write(" \t\t NEW GRID SEARCH RUN "+date+"\n")
     f.write(" #################################### \n\n")
 
     l_grid = [0.5, 0.75, 1]

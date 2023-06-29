@@ -331,7 +331,7 @@ def validate(model, val_loader, device, it, num_classes):
     with torch.no_grad():
         for i_val, (data, label) in enumerate(val_loader):
             label = label.to(device)
-            _,logits_t = model(data,data,beta=[1, 1, 1],mu=0,is_train=True,reverse=False)
+            _,logits_t = model(data,data,mu=0,is_train=True,reverse=False)
             model.compute_accuracy(logits_t, label)
 
             if (i_val + 1) % (len(val_loader) // 5) == 0:
