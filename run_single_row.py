@@ -34,7 +34,7 @@ def main():
         ablation_entry = ablation_list[i]
         temporal_type = ablation_entry['temporal_type']
         ablation = ablation_entry['ablation']
-        weights = {'gamma': 0, 'l_s': 0.4, 'l_r': 0.6, 'l_t': 0.5}
+        weights = {'gamma': 0, 'l_s': 1, 'l_r': 0.5, 'l_t': 0.5}
         domains = ['D1', 'D2','D3']
         score = {}
         best_acc = {}
