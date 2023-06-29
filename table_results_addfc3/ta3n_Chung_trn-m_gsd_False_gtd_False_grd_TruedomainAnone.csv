@@ -1,0 +1,3 @@
+,abl,D1-D2,D1-D3,D2-D1,D2-D3,D3-D1,D3-D2,type
+0,"{'temporal_type': 'trn-m', 'ablation': {'gsd': False, 'gtd': False, 'grd': True, 'domainA': 'none', 'frameA': 'none'}}",39.86666665649414,34.70225874256549,48.96551726768757,35.215605749486656,41.14942523473981,45.066666646321615,top1
+1,"{'temporal_type': 'trn-m', 'ablation': {'gsd': False, 'gtd': False, 'grd': True, 'domainA': 'none', 'frameA': 'none'}}",41.599999989827474,37.26899385550184,49.425287338783,39.52772073921971,42.52873565849217,47.86666670735677,best

@@ -118,7 +118,7 @@ def main_train(temporal_type = None, ablation = None, loss_weights = None, shift
 				base_model='resnet101', path_pretrained='', new_length=None,
 				before_softmax=True,
 				dropout_i=0.5, dropout_v=0.5, use_bn=args.models[m]["use_bn"], ens_DA='none',
-				crop_num=1, partial_bn=True, verbose=True, add_fc=3, fc_dim=1024,
+				crop_num=1, partial_bn=True, verbose=True, add_fc=1, fc_dim=1024,
 				n_rnn=1, rnn_cell='LSTM', n_directions=1, n_ts=5,
 				use_attn=ablation["domainA"], n_attn=1, use_attn_frame=ablation["frameA"],
 				share_params='Y')
