@@ -168,13 +168,16 @@ class MultiModal_task(tasks.Task, ABC):
             self.loss_td.update(loss_td)
             
             # Loss AE
-            fused_logits_class_target = reduce(lambda x, y: x + y, logits_target["class"].values())
-             
-            loss_ae_source = computeEntropyLoss(fused_logits_td_source,fused_logits_class_source)
-            loss_ae_target = computeEntropyLoss(fused_logits_td_target,fused_logits_class_target)
 
-            self.loss_ae.update(loss_ae_source + loss_ae_target);
-            
+            if(self.model_args['RGB']['ablation']['domainA'] != 'none'):
+                fused_logits_class_target = reduce(lambda x, y: x + y, logits_target["class"].values())
+
+                loss_ae_source = computeEntropyLoss(fused_logits_td_source,fused_logits_class_source)
+                loss_ae_target = computeEntropyLoss(fused_logits_td_target,fused_logits_class_target)
+
+                self.loss_ae.update(loss_ae_source + loss_ae_target);
+            else:
+                self.loss_ae.update(0)
             #Update loss           
             loss += 0.5*self.l_t*loss_td+0.5*self.gamma *self.loss_ae.val
         if(self.temporal_type=="trn-m" and self.ablation["grd"]):
