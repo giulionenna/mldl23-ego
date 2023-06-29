@@ -25,7 +25,7 @@ def main():
              'D3-D1',
              'D3-D2']
 
-    if(True):
+    if(False):
         vec = [0,1,2,3,4,5,6,7,8]
     else:
         vec = [int(sys.argv[1])]
@@ -34,7 +34,7 @@ def main():
         ablation_entry = ablation_list[i]
         temporal_type = ablation_entry['temporal_type']
         ablation = ablation_entry['ablation']
-        weights = {'gamma': 1, 'l_s': 1, 'l_r': 0.75, 'l_t': 1}
+        weights = {'gamma': 0, 'l_s': 0.4, 'l_r': 0.6, 'l_t': 0.5}
         domains = ['D1', 'D2','D3']
         score = {}
         best_acc = {}

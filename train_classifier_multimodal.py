@@ -264,7 +264,7 @@ def train(action_classifier, train_loader, target_loader,val_loader, device, num
 
        
         #forward 
-        logits_s,logits_t = action_classifier.forward(data_s,data_t,beta=[1, 1, 1],mu=0,is_train=True,reverse=False)
+        logits_s,logits_t = action_classifier.forward(data_s,data_t,mu=0,is_train=True,reverse=False)
         #compute loss on source
         action_classifier.compute_loss(logits_s,logits_t, source_label, source_label_domain,target_label_domain, loss_weight=1)
         #backward based on updated losses

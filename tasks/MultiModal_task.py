@@ -59,16 +59,26 @@ class MultiModal_task(tasks.Task, ABC):
         self.batch_size = batch_size
         self.device = device
 
+        # Loss weights
+        self.beta = [0,0,0]
         if loss_weights is None:
             self.gamma = model_args['RGB'].gamma 
             self.l_s = model_args['RGB'].l_s
             self.l_r = model_args['RGB'].l_r
             self.l_t = model_args['RGB'].l_t
+
+            self.beta[0] = self.l_r
+            self.beta[1] = self.l_t
+            self.beta[2] = self.l_s
         else:
             self.gamma = loss_weights['gamma']
             self.l_s = loss_weights['l_s']
             self.l_r = loss_weights['l_r']
             self.l_t = loss_weights['l_t']
+
+            self.beta[0] = self.l_r
+            self.beta[1] = self.l_t
+            self.beta[2] = self.l_s
 
 
         if ablation is None:
@@ -81,6 +91,7 @@ class MultiModal_task(tasks.Task, ABC):
         else:
             self.temporal_type = temporal_type
 
+        
         # Use the cross entropy loss as the default criterion for the classification task
         self.criterion_class = torch.nn.CrossEntropyLoss(weight=None, size_average=None, ignore_index=-100,
                                                    reduce=None, reduction='none')
@@ -99,7 +110,7 @@ class MultiModal_task(tasks.Task, ABC):
                                                 weight_decay=model_args[m].weight_decay,
                                                 momentum=model_args[m].sgd_momentum)
 
-    def forward(self, data_s: Dict[str, torch.Tensor], data_t: Dict[str, torch.Tensor], beta, mu, is_train, reverse) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
+    def forward(self, data_s: Dict[str, torch.Tensor], data_t: Dict[str, torch.Tensor], mu, is_train, reverse) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
         """Forward step of the task
 
         Parameters
@@ -124,7 +135,7 @@ class MultiModal_task(tasks.Task, ABC):
         features = {}
         for i_m, m in enumerate(self.modalities):
             #attn_relation_source, output_source, output_source_2, pred_domain_all_source[::-1],               feat_all_source[::-1], 
-            _,logits_source["class"][m],_,[logits_source["rd"][m],logits_source["td"][m],logits_source["sd"][m]],_,_,logits_target["class"][m],_,[logits_target["rd"][m],logits_target["td"][m],logits_target["sd"][m]],_,= self.task_models[m](data_s[m],data_t[m],beta,mu,is_train,reverse)
+            _,logits_source["class"][m],_,[logits_source["rd"][m],logits_source["td"][m],logits_source["sd"][m]],_,_,logits_target["class"][m],_,[logits_target["rd"][m],logits_target["td"][m],logits_target["sd"][m]],_,= self.task_models[m](data_s[m],data_t[m],self.beta,mu,is_train,reverse)
 
         return logits_source,logits_target
 
