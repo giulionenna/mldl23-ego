@@ -7,7 +7,9 @@ import tasks
 from utils.logger import logger
 from torch import nn
 from typing import Dict, Tuple
-
+import modules.vit as VIT
+import modules.AttModule as AttMod
+#from modules import MultiHeadAttentionModule
 
 class MultiModal_task(tasks.Task, ABC):
     """Ta3N."""
@@ -109,6 +111,18 @@ class MultiModal_task(tasks.Task, ABC):
             self.optimizer[m] = torch.optim.SGD(optim_params[m], model_args[m].lr,
                                                 weight_decay=model_args[m].weight_decay,
                                                 momentum=model_args[m].sgd_momentum)
+        #Initialize Audio Attention
+        if(self.args["audio_attention"]== "vit"):
+            self.attention_model = VIT.ViT(dim=5, depth=3, heads=3,mlp_dim=512,dropout=0.15, emb_dropout=0.1, dim_head=1)
+            if(device == "cuda"):
+                self.attention_model = self.attention_model.cuda()
+            self.attention_model = torch.nn.DataParallel(self.attention_model)
+        elif(self.args["audio_attention"]== "ourAttention"):
+            self.attention_module = AttMod.MultiHeadAttentionModule([5,1024],1,3,self.device) 
+            
+        elif(self.args["audio_attention"]== "encoder"):
+            self.encoder_layer = nn.TransformerEncoderLayer(d_model=1024, nhead=4,dim_feedforward=512,batch_first=True)
+            self.attention_model= nn.TransformerEncoder(self.encoder_layer, num_layers=3)
 
     def forward(self, data_s: Dict[str, torch.Tensor], data_t: Dict[str, torch.Tensor], mu, is_train, reverse) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
         """Forward step of the task
@@ -134,7 +148,42 @@ class MultiModal_task(tasks.Task, ABC):
 
         features = {}
         for i_m, m in enumerate(self.modalities):
-            #attn_relation_source, output_source, output_source_2, pred_domain_all_source[::-1],               feat_all_source[::-1], 
+            if(m=="RGB" and self.args["audio_attention"]=="vit"):
+                channel_att_s = self.attention_model(data_s['audio'].detach())
+                channel_att_t = self.attention_model(data_t['audio'].detach())
+                
+                channel_att_s = channel_att_s.unsqueeze(2).repeat(1,1,data_s[m].shape[2])
+                channel_att_t = channel_att_t.unsqueeze(2).repeat(1,1,data_s[m].shape[2])
+                
+                weighted_data_s = channel_att_s*data_s[m]
+                weighted_data_t = channel_att_t*data_t[m]
+
+                data_s[m] = weighted_data_s
+                data_t[m] = weighted_data_t
+                #data_s[m] = (nn.AvgPool2d([5,1])(weighted_data_s.unsqueeze(1))).squeeze()
+                #data_t[m] = (nn.AvgPool2d([5,1])(weighted_data_t.unsqueeze(1))).squeeze()
+
+            elif(m=="RGB" and self.args["audio_attention"]=="ourAttention"):
+                new_data_s = self.attention_module(data_s['audio'],data_s[m])
+                new_data_t = self.attention_module(data_t['audio'],data_t[m])
+                data_s[m] = new_data_s
+                data_t[m] = new_data_t
+            elif(m=="RGB" and self.args["audio_attention"]=="base"):
+                #Squeezee and Ecitation
+                a = 0
+            elif(m=="RGB" and self.args["audio_attention"]=="encoder"):
+                channel_att_s = self.attention_model(data_s['audio'])
+                channel_att_t = self.attention_model(data_t['audio'])
+                
+                channel_att_s = channel_att_s.unsqueeze(2).repeat(1,1,data_s[m].shape[2])
+                channel_att_t = channel_att_t.unsqueeze(2).repeat(1,1,data_s[m].shape[2])
+                
+                weighted_data_s = channel_att_s*data_s[m]
+                weighted_data_t = channel_att_t*data_t[m]
+
+                data_s[m] = weighted_data_s
+                data_t[m] = weighted_data_t
+            
             _,logits_source["class"][m],_,[logits_source["rd"][m],logits_source["td"][m],logits_source["sd"][m]],_,_,logits_target["class"][m],_,[logits_target["rd"][m],logits_target["td"][m],logits_target["sd"][m]],_,= self.task_models[m](data_s[m],data_t[m],self.beta,mu,is_train,reverse)
 
         return logits_source,logits_target
