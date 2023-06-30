@@ -169,7 +169,7 @@ class MultiModal_task(tasks.Task, ABC):
             
             # Loss AE
 
-            if(self.model_args['RGB']['ablation']['domainA'] != 'none'):
+            if(self.ablation['domainA'] != 'none'):
                 fused_logits_class_target = reduce(lambda x, y: x + y, logits_target["class"].values())
 
                 loss_ae_source = computeEntropyLoss(fused_logits_td_source,fused_logits_class_source)
