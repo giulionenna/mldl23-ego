@@ -1,6 +1,6 @@
 action: train # train or test
 name: TA3N_chung # name of the experiment needed for the logs
-modality: ["RGB"] # modality used
+modality: ["RGB","audio"] # modality used
 total_batch: 128 # total batch size if training is done with gradient accumulation
 batch_size: 32 # batch size for the forward
 gpus: cuda  # gpus adopted
@@ -29,8 +29,8 @@ test:
 dataset:
   annotations_path: train_val # path for the annotations data
   shift: D1-D2 # shifts of the dataset
-  workers: 4 # number of workers for the dataloader 
-  persistentWorkers: True
+  workers: 0 # number of workers for the dataloader 
+  persistentWorkers: False
   stride: 2 # stride in case of dense sampling
   resolution: 224 # input resolution to the model
   RGB:
@@ -50,6 +50,7 @@ dataset:
 
 # these are the action recognition models for each modality
 mid_fusion: True
+audio_attention: 'ourAttention' # "base" or "vit" or "ourAttention" or "encoder"
 models:
   RGB:
     model: Classifier
@@ -58,17 +59,17 @@ models:
     lr_steps: 900
     lr: 0.01
     gamma: 0
-    l_s: 0.4
-    l_r: 0.75
-    l_t: 0.6
+    l_s: 1
+    l_r: 0.5
+    l_t: 0.5
     sgd_momentum: 0.9
     weight_decay: 1e-7
-    temporal-type: trn-m #or 'trn-m' or 'avgpool'
+    temporal-type: avgpool #or 'trn-m' or 'avgpool'
     use_bn: 'yes' #or any string or 'AutooDIAL'
     ablation: 
-      gsd: True
-      gtd: True
-      grd: True
+      gsd: False
+      gtd: False
+      grd: False
       domainA: none  #domain attention general or TransAttn
       frameA: none  #frame attention general or TransAttn
   audio:
@@ -78,17 +79,17 @@ models:
     lr_steps: 900
     lr: 0.01
     gamma: 0.1
-    l_s: 0.5
-    l_r: 0.75
+    l_s: 1
+    l_r: 0.5
     l_t: 0.5
     sgd_momentum: 0.9
     weight_decay: 1e-7
-    temporal-type: trn-m
+    temporal-type: avgpool
     use_bn: 'yes'
     ablation: 
-      gsd: True
-      gtd: True
-      grd: True
+      gsd: False
+      gtd: False
+      grd: False
       domainA: none
       frameA: none
   flow:
