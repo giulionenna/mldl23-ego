@@ -127,13 +127,13 @@ class MidFusion_task(tasks.Task, ABC):
         m = self.args["modality"][0]
         if(len(self.args["modality"])== 2):
             m2 = self.args["modality"][1]
-            input_s = torch.cat((data_s[m],data_s[m2]),dim=1)
-            input_t = torch.cat((data_t[m],data_t[m2]),dim=1)
+            input_s = torch.cat((data_s[m],data_s[m2]),dim=2)
+            input_t = torch.cat((data_t[m],data_t[m2]),dim=2)
         if(len(self.args["modality"])== 3):
             m2 = self.args["modality"][1]
             m3 = self.args["modality"][2]
-            input_s= torch.cat((data_s[m],data_s[m2],data_s[m3]),dim=1)
-            input_t = torch.cat((data_t[m],data_t[m2],data_t[m3]),dim=1)
+            input_s= torch.cat((data_s[m],data_s[m2],data_s[m3]),dim=2)
+            input_t = torch.cat((data_t[m],data_t[m2],data_t[m3]),dim=2)
         m = 'mid_fusion'
         
         _,logits_source["class"][m],_,[logits_source["rd"][m],logits_source["td"][m],logits_source["sd"][m]],_,_,logits_target["class"][m],_,[logits_target["rd"][m],logits_target["td"][m],logits_target["sd"][m]],_,= self.task_models[m](input_s,input_t,beta,mu,is_train,reverse)

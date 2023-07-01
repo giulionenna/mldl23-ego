@@ -819,7 +819,7 @@ class ClassifierMidFusion(nn.Module):
 			raise ValueError(Back.RED + 'add at least one fc layer')
 
 		# 1. shared feature layers # GSF ******************************************************************
-		self.fc_feature_shared_source = nn.Linear(self.feature_dim, feat_shared_dim)
+		self.fc_feature_shared_source = nn.Linear(self.feature_dim*self.n_modalities, feat_shared_dim)
 		normal_(self.fc_feature_shared_source.weight, 0, std)
 		constant_(self.fc_feature_shared_source.bias, 0)
 		
@@ -1343,40 +1343,33 @@ class ClassifierMidFusion(nn.Module):
 		pred_domain_all_source = []
 		pred_domain_all_target = []
 
-		gsf_out = []
-		for m in range(n_modalities):
-			gsf_out.append(self.gsf(m,input_source[:,m*self.train_segments:(m+1)*self.train_segments,:],input_target[:,m*self.train_segments:(m+1)*self.train_segments,:],batch_source,batch_target, num_segments,is_train))
-		gsf_mean_s = torch.zeros([batch_source,num_segments,input_source.size()[2]],device = self.device)
-		gsf_mean_t = torch.zeros([batch_source,num_segments,input_source.size()[2]],device = self.device)
-		gsf_mean_fc1_s =torch.zeros([batch_source,num_segments,input_source.size()[2]],device = self.device)
-		gsf_mean_fc1_t =torch.zeros([batch_source,num_segments,input_source.size()[2]],device = self.device)
-		gsf_mean_fc2_s =torch.zeros([batch_source,num_segments,input_source.size()[2]],device = self.device)
-		gsf_mean_fc2_t =torch.zeros([batch_source,num_segments,input_source.size()[2]],device = self.device)
 
-		for m in range(n_modalities):
-			gsf_mean_s += (1/n_modalities)*gsf_out[m][0][0]+0
-			gsf_mean_t += (1/n_modalities)*gsf_out[m][1][0]+0
-			if self.add_fc > 1:#TODO Check this
-				gsf_mean_fc1_s += (1/n_modalities)*gsf_out[m][1]+0
-			if self.add_fc > 2:
-				gsf_mean_fc2 += (1/n_modalities)*gsf_out[m][2]+0
-		
-		#source
-		feat_all_source.append(gsf_mean_s)
-		if self.add_fc > 1:#TODO check this
-			feat_all_source.append(gsf_mean_fc1_s)
-		if self.add_fc > 2:
-			feat_all_source.append(gsf_mean_fc2_s)
-		#target
-		feat_all_target.append(gsf_mean_t)
-		if self.add_fc > 1:#TODO check this
-			feat_all_target.append(gsf_mean_fc1_t)
-		if self.add_fc > 2:
-			feat_all_target.append(gsf_mean_fc2_t)
+		# input_data is a list of tensors --> need to do pre-processing
+		feat_base_source = input_source.view(-1, input_source.size()[-1]) # e.g. 256 x 25 x 2048 --> 6400 x 2048
+		feat_base_target = input_target.view(-1, input_target.size()[-1])  # e.g. 256 x 25 x 2048 --> 6400 x 2048
+
+		#=== shared layers ===#
+		# need to separate BN for source & target ==> otherwise easy to overfit to source data
+		if self.add_fc < 1:
+			raise ValueError(Back.RED + 'not enough fc layer')
+
+		feat_fc_source = self.fc_feature_shared_source(feat_base_source)
+		feat_fc_target = self.fc_feature_shared_target(feat_base_target) if self.share_params == 'N' else self.fc_feature_shared_source(feat_base_target)
+
+		# adaptive BN
+		if self.use_bn != 'none':
+			feat_fc_source, feat_fc_target = self.domainAlign(feat_fc_source, feat_fc_target, is_train, 'shared', self.alpha.item(), num_segments, 1)
+
+		feat_fc_source = self.relu(feat_fc_source)
+		feat_fc_target = self.relu(feat_fc_target)
+		feat_fc_source = self.dropout_i(feat_fc_source)
+		feat_fc_target = self.dropout_i(feat_fc_target)
+
+		# feat_fc = self.dropout_i(feat_fc)
+		feat_all_source.append(feat_fc_source.view((batch_source, num_segments) + feat_fc_source.size()[-1:])) # reshape ==> 1st dim is the batch size
+		feat_all_target.append(feat_fc_target.view((batch_target, num_segments) + feat_fc_target.size()[-1:]))
 
 
-		feat_fc_source = feat_all_source[0].reshape(-1, input_source.size()[-1])
-		feat_fc_target = feat_all_target[0].reshape(-1, input_target.size()[-1])
 		# === adversarial branch (frame-level) GSF out===#
 		pred_fc_domain_frame_source = self.domain_classifier_frame(feat_fc_source, beta)
 		pred_fc_domain_frame_target = self.domain_classifier_frame(feat_fc_target, beta)
