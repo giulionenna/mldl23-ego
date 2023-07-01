@@ -2,11 +2,11 @@
 # Un semplice esempio di variabili
 
 
-for VARIABLE in 8
+for VARIABLE in 7
 do
     echo Executing script n: $VARIABLE
     python3 run_single_row.py $VARIABLE
-    #sleep 250
+    #sleep 150
 done
 
 say RUN Finita

@@ -307,7 +307,7 @@ def train(action_classifier, train_loader, target_loader,val_loader, device, num
             if args.wandb_name is not None:
                 wandb.log({"best_acc":  action_classifier.best_iter_score})
                 wandb.log({"acc_top1":  val_metrics['top1']})
-            action_classifier.save_model(real_iter, val_metrics['top1'], prefix=None)
+            #action_classifier.save_model(real_iter, val_metrics['top1'], prefix=None) #TODO SAVE MODEL
             action_classifier.train(True)
 
     return loss_train.clone().detach(), action_classifier.best_iter_score, last_acc
