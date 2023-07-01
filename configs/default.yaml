@@ -50,7 +50,7 @@ dataset:
 
 # these are the action recognition models for each modality
 mid_fusion: True
-audio_attention: 'ourAttention' # "base" or "vit" or "ourAttention" or "encoder"
+audio_attention: 'squeeze' # "squeeze" or "vit" or "ourAttention" or "encoder"
 models:
   RGB:
     model: Classifier

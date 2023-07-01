@@ -9,6 +9,7 @@ from torch import nn
 from typing import Dict, Tuple
 import modules.vit as VIT
 import modules.AttModule as AttMod
+import torchvision
 #from modules import MultiHeadAttentionModule
 
 class MultiModal_task(tasks.Task, ABC):
@@ -123,7 +124,8 @@ class MultiModal_task(tasks.Task, ABC):
         elif(self.args["audio_attention"]== "encoder"):
             self.encoder_layer = nn.TransformerEncoderLayer(d_model=1024, nhead=4,dim_feedforward=512,batch_first=True)
             self.attention_model= nn.TransformerEncoder(self.encoder_layer, num_layers=3)
-
+        elif(self.args["audio_attention"] == "squeeze"):
+            self.attention_model = torchvision.ops.SqueezeExcitation(5,2)
     def forward(self, data_s: Dict[str, torch.Tensor], data_t: Dict[str, torch.Tensor], mu, is_train, reverse) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
         """Forward step of the task
 
@@ -168,9 +170,14 @@ class MultiModal_task(tasks.Task, ABC):
                 new_data_t = self.attention_module(data_t['audio'],data_t[m])
                 data_s[m] = new_data_s
                 data_t[m] = new_data_t
-            elif(m=="RGB" and self.args["audio_attention"]=="base"):
+            elif(m=="RGB" and self.args["audio_attention"]=="squeeze"):
                 #Squeezee and Ecitation
-                a = 0
+                channel_att_s = self.attention_model(data_s['audio'].view([data_s[m].shape[0],5,32,32]))
+                channel_att_t = self.attention_model(data_t['audio'].view([data_s[m].shape[0],5,32,32]))
+                
+                data_s[m] = channel_att_s.reshape(data_s[m].shape[0],5,1024) 
+                data_t[m] = channel_att_t.reshape(data_s[m].shape[0],5,1024) 
+
             elif(m=="RGB" and self.args["audio_attention"]=="encoder"):
                 channel_att_s = self.attention_model(data_s['audio'])
                 channel_att_t = self.attention_model(data_t['audio'])
