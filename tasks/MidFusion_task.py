@@ -7,6 +7,9 @@ import tasks
 from utils.logger import logger
 from torch import nn
 from typing import Dict, Tuple
+import modules.vit as VIT
+import modules.AttModule as AttMod
+import torchvision
 
 
 class MidFusion_task(tasks.Task, ABC):
@@ -97,6 +100,20 @@ class MidFusion_task(tasks.Task, ABC):
         self.optimizer[m] = torch.optim.SGD(optim_params[m], model_args[m].lr,
                                                 weight_decay=model_args[m].weight_decay,
                                                 momentum=model_args[m].sgd_momentum)
+        #Initialize Audio Attention
+        if(self.args["audio_attention"]== "vit"):
+            self.attention_model = VIT.ViT(dim=5, depth=3, heads=3,mlp_dim=512,dropout=0.15, emb_dropout=0.1, dim_head=1)
+            if(device == "cuda"):
+                self.attention_model = self.attention_model.cuda()
+            self.attention_model = torch.nn.DataParallel(self.attention_model)
+        elif(self.args["audio_attention"]== "ourAttention"):
+            self.attention_module = AttMod.MultiHeadAttentionModule([5,1024],1,3,self.device) 
+            
+        elif(self.args["audio_attention"]== "encoder"):
+            self.encoder_layer = nn.TransformerEncoderLayer(d_model=1024, nhead=4,dim_feedforward=512,batch_first=True)
+            self.attention_model= nn.TransformerEncoder(self.encoder_layer, num_layers=3)
+        elif(self.args["audio_attention"] == "squeeze"):
+            self.attention_model = torchvision.ops.SqueezeExcitation(5,2)
 
     def forward(self, data_s: Dict[str, torch.Tensor],data_t,beta, mu, is_train, reverse, **kwargs) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
         """Forward step of the task
@@ -127,19 +144,48 @@ class MidFusion_task(tasks.Task, ABC):
         m = self.args["modality"][0]
         if(len(self.args["modality"])== 2):
             m2 = self.args["modality"][1]
-            input_s = torch.cat((data_s[m],data_s[m2]),dim=1)
-            input_t = torch.cat((data_t[m],data_t[m2]),dim=1)
+            
+            data_s[m] = self.getAttention(data=data_s[m],data_audio=data_s["audio"])
+            data_t[m] = self.getAttention(data=data_t[m],data_audio=data_t["audio"])
+
+            input_s = torch.cat((data_s[m],data_s[m2]),dim=2)
+            input_t = torch.cat((data_t[m],data_t[m2]),dim=2)
         if(len(self.args["modality"])== 3):
             m2 = self.args["modality"][1]
             m3 = self.args["modality"][2]
-            input_s= torch.cat((data_s[m],data_s[m2],data_s[m3]),dim=1)
-            input_t = torch.cat((data_t[m],data_t[m2],data_t[m3]),dim=1)
+
+            data_s[m] = self.getAttention(data=data_s[m],data_audio=data_s["audio"])
+            data_t[m] = self.getAttention(data=data_t[m],data_audio=data_t["audio"])
+
+            data_s[m2] = self.getAttention(data=data_s[m2],data_audio=data_s["audio"])
+            data_t[m2] = self.getAttention(data=data_t[m2],data_audio=data_t["audio"])
+            
+            input_s= torch.cat((data_s[m],data_s[m2],data_s[m3]),dim=2)
+            input_t = torch.cat((data_t[m],data_t[m2],data_t[m3]),dim=2)
         m = 'mid_fusion'
         
         _,logits_source["class"][m],_,[logits_source["rd"][m],logits_source["td"][m],logits_source["sd"][m]],_,_,logits_target["class"][m],_,[logits_target["rd"][m],logits_target["td"][m],logits_target["sd"][m]],_,= self.task_models[m](input_s,input_t,beta,mu,is_train,reverse)
 
         return logits_source,logits_target
+    def getAttention(self,data,data_audio):
+        if(self.args["audio_attention"]=="ourAttention"):
+                new_data = self.attention_module(data_audio,data)
+                
+        elif(self.args["audio_attention"]=="squeeze"):
+                #Squeezee and Ecitation
+                channel_att_s = self.attention_model(data_audio.view([data.shape[0],5,32,32]))
+                
+                new_data = channel_att_s.reshape(data.shape[0],5,1024) 
 
+        elif(self.args["audio_attention"]=="encoder"):
+                channel_att_s = self.attention_model(data_audio)
+                channel_att_s = channel_att_s.unsqueeze(2).repeat(1,1,data.shape[2])
+                
+                new_data = channel_att_s*data
+                
+                
+                
+        return new_data  
     def compute_loss(self,logits_source,logits_target,label_class_source,label_d_source,label_d_target,loss_weight=1):
         loss = 0
         # Source 

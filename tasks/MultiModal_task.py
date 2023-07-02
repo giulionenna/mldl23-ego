@@ -119,7 +119,7 @@ class MultiModal_task(tasks.Task, ABC):
                 self.attention_model = self.attention_model.cuda()
             self.attention_model = torch.nn.DataParallel(self.attention_model)
         elif(self.args["audio_attention"]== "ourAttention"):
-            self.attention_module = AttMod.MultiHeadAttentionModule([5,1024],1,3,self.device) 
+            self.attention_module = AttMod.MultiHeadAttentionModule([5,1024],1,1,self.device) 
             
         elif(self.args["audio_attention"]== "encoder"):
             self.encoder_layer = nn.TransformerEncoderLayer(d_model=1024, nhead=4,dim_feedforward=512,batch_first=True)
