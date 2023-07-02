@@ -261,6 +261,6 @@ class Task(torch.nn.Module, metaclass=ABCMeta):
                 if param.requires_grad and param.grad is not None:
                     if param.grad.norm(2).item() > 25:
                         logger.info(f"Param {name} has a gradient whose L2 norm is over 25")
-
+                        torch.nn.utils.clip_grad_norm_(self.task_models[m].parameters(),1)
     def __str__(self) -> str:
         return self.name
