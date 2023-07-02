@@ -121,9 +121,9 @@ class MultiModal_task(tasks.Task, ABC):
         elif(self.args["audio_attention"]== "ourAttention"):
             self.attention_module = AttMod.MultiHeadAttentionModule([5,1024],1,1,self.device) 
             
-        elif(self.args["audio_attention"]== "encoder"):
-            self.encoder_layer = nn.TransformerEncoderLayer(d_model=1024, nhead=4,dim_feedforward=512,batch_first=True)
-            self.attention_model= nn.TransformerEncoder(self.encoder_layer, num_layers=3)
+        elif(self.args["audio_attention"]== "Transformer"):
+            self.attention_model = nn.Transformer(d_model=1024, nhead=4,num_encoder_layers = 3,dim_feedforward=512,batch_first=True)
+            
         elif(self.args["audio_attention"] == "squeeze"):
             self.attention_model = torchvision.ops.SqueezeExcitation(5,2)
     def forward(self, data_s: Dict[str, torch.Tensor], data_t: Dict[str, torch.Tensor], mu, is_train, reverse) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:

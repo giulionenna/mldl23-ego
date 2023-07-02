@@ -109,9 +109,9 @@ class MidFusion_task(tasks.Task, ABC):
         elif(self.args["audio_attention"]== "ourAttention"):
             self.attention_module = AttMod.MultiHeadAttentionModule([5,1024],1,3,self.device) 
             
-        elif(self.args["audio_attention"]== "encoder"):
-            self.encoder_layer = nn.TransformerEncoderLayer(d_model=1024, nhead=4,dim_feedforward=512,batch_first=True)
-            self.attention_model= nn.TransformerEncoder(self.encoder_layer, num_layers=3)
+        elif(self.args["audio_attention"]== "Transformer"):
+            self.attention_model = nn.Transformer(d_model=1024, nhead=4,num_encoder_layers = 2,num_decoder_layers = 2,dim_feedforward=256,batch_first=True)
+          
         elif(self.args["audio_attention"] == "squeeze"):
             self.attention_model = torchvision.ops.SqueezeExcitation(5,2)
 
@@ -177,13 +177,8 @@ class MidFusion_task(tasks.Task, ABC):
                 
                 new_data = channel_att_s.reshape(data.shape[0],5,1024) 
 
-        elif(self.args["audio_attention"]=="encoder"):
-                channel_att_s = self.attention_model(data_audio)
-                channel_att_s = channel_att_s.unsqueeze(2).repeat(1,1,data.shape[2])
-                
-                new_data = channel_att_s*data
-                
-                
+        elif(self.args["audio_attention"]=="Transformer"):
+                new_data = self.attention_model(data_audio,data)
                 
         return new_data  
     def compute_loss(self,logits_source,logits_target,label_class_source,label_d_source,label_d_target,loss_weight=1):
